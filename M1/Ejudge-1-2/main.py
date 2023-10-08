@@ -50,9 +50,12 @@ class Deque:
 
     def print_deque(self):
         if self.size == 0:
-            return "empty"
+            print("empty")
         else:
-            return " ".join(str(self.deque[(self.front + i) % self.max_size]) for i in range(self.size))
+            for i in range(self.size - 1):
+                index = (self.front + i) % self.max_size
+                print(self.deque[index], end=" ")
+            print(self.deque[(self.front + self.size - 1) % self.max_size])
 
 
 max_size = 0
@@ -90,7 +93,6 @@ while True:
 
         elif command == "print":
             result = deque.print_deque()
-            print(result)
 
         else:
             print("error")
