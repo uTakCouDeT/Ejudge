@@ -5,23 +5,26 @@ class Graph:
     def __init__(self):
         self.dependencies = {}
         self.vulnerable_libraries = set()
-        self.visited = set()
 
     def add_dependency(self, dependency, libraries):
-        self.dependencies.update({dependency: libraries})
-        self.dependencies[dependency] = libraries
+        if dependency not in self.dependencies:
+            self.dependencies[dependency] = libraries
 
     def add_vulnerable_library(self, library):
         self.vulnerable_libraries.add(library)
 
-    def find_paths(self, start_dependency):
+    def BFS_find_paths(self, start_dependency):
         queue = deque([(start_dependency, [start_dependency])])
+        visited_paths = set()  # Хранит уже посещенные пути
 
         while queue:
             current_dependency, current_path = queue.popleft()
 
             if current_dependency in self.vulnerable_libraries:
-                print(" ".join(current_path))
+                path_str = " ".join(current_path)
+                if path_str not in visited_paths:
+                    visited_paths.add(path_str)
+                    print(path_str)
 
             if current_dependency in self.dependencies:
                 for dependency in self.dependencies[current_dependency]:
@@ -40,9 +43,7 @@ def main():
 
         direct_dependencies = input().split()
 
-    except EOFError:
-        return
-    except KeyboardInterrupt:
+    except (EOFError, KeyboardInterrupt):
         return
 
     while True:
@@ -57,14 +58,12 @@ def main():
             if dependency not in dependent_libraries:
                 graph.add_dependency(dependency, dependent_libraries)
 
-        except EOFError:
-            break
-        except KeyboardInterrupt:
+        except (EOFError, KeyboardInterrupt):
             break
 
     # Запуск BFS из каждой прямой зависимости
     for dependency in direct_dependencies:
-        graph.find_paths(dependency)
+        graph.BFS_find_paths(dependency)
 
 
 if __name__ == '__main__':
