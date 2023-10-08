@@ -2,15 +2,17 @@ import re
 
 
 class Deque:
-    def __init__(self, max_size):
-        if max_size >= 0:
-            self.max_size = max_size
-            self.deque = [None] * max_size
-            self.front = 0
-            self.rear = 0
-            self.size = 0
-        else:
-            print("error")
+    def __init__(self, max_size=None):
+        self.max_size = None
+        self.front = 0
+        self.rear = 0
+        self.size = 0
+        if max_size is not None:
+            if max_size >= 0:
+                self.max_size = max_size
+                self.deque = [None] * max_size
+            else:
+                print("error")
 
     def pushf(self, value):
         if self.size < self.max_size:
@@ -54,30 +56,28 @@ class Deque:
 
 
 max_size = 0
-deque = None
+deque = Deque()
 
 while True:
     try:
-        command = input().strip()
+        command = input()
         if not command:
             continue
 
-        if re.match(r'^set_size \d+$', command):
-            _, max_size_str = command.split()
-            max_size = int(max_size_str)
-            deque = Deque(max_size)
+        if deque.max_size is None:
+            if re.match(r'^set_size [-+]?\d+$', command):
+                max_size = int(command[9:])
+                deque = Deque(max_size)
+            else:
+                print("error")
             continue
 
-        if deque is None:
-            print("error")
-            continue
-
-        if re.match(r'^pushf \S+$', command):
-            _, value = command.split()
+        if re.match(r'^pushf \S*$', command):
+            value = command[6:]
             deque.pushf(value)
 
-        elif re.match(r'^pushb \S+$', command):
-            _, value = command.split()
+        elif re.match(r'^pushb \S*$', command):
+            value = command[6:]
             deque.pushb(value)
 
         elif command == "popf":
@@ -96,4 +96,6 @@ while True:
             print("error")
 
     except EOFError:
+        break
+    except KeyboardInterrupt:
         break

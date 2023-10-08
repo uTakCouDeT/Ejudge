@@ -1,39 +1,44 @@
-import sys
+class Graph:
+    def __init__(self):
+        self.dependencies = {}
+        self.vulnerable_libraries = set()
 
+    def add_dependency(self, dependency, libraries):
+        self.dependencies[dependency] = libraries
 
-def find_vulnerable_paths(vulnerable_libs, direct_deps, dependencies):
-    def dfs(node, path):
-        if node in vulnerable_libs:
-            paths.append(path)
+    def add_vulnerable_library(self, library):
+        self.vulnerable_libraries.add(library)
 
-        visited.add(node)
+    def find_paths(self, start_dependency, current_path):
+        current_path.append(start_dependency)
+        if start_dependency in self.vulnerable_libraries:
+            print(" ".join(current_path))
 
-        for dep in dependencies.get(node, []):
-            if dep not in visited:
-                dfs(dep, path + [dep])
+        if start_dependency in self.dependencies:
+            for dependency in self.dependencies[start_dependency]:
+                self.find_paths(dependency, current_path)
 
-    paths = []
-    visited = set()
-
-    for direct_dep in direct_deps:
-        dfs(direct_dep, [direct_dep])
-
-    return paths
-
+        current_path.pop()
 
 if __name__ == "__main__":
-    vulnerable_libs = input().strip().split()
-    direct_deps = input().strip().split()
-    dependencies = {}
+    graph = Graph()
 
-    for line in sys.stdin:
-        parts = line.strip().split()
-        dependency = parts[0]
-        libs = parts[1:]
+    # Чтение входных данных
+    vulnerable_libraries = input().split()
+    dependencies = input().split()
 
-        dependencies[dependency] = libs
+    while True:
+        try:
+            line = input().split()
+            dependency = line[0]
+            libraries = line[1:]
+            graph.add_dependency(dependency, libraries)
+        except EOFError:
+            break
 
-    paths = find_vulnerable_paths(vulnerable_libs, direct_deps, dependencies)
+    for library in vulnerable_libraries:
+        graph.add_vulnerable_library(library)
 
-    for path in paths:
-        print(" ".join(path))
+    # Запуск DFS из каждой прямой зависимости
+    for dependency in dependencies:
+        graph.find_paths(dependency, [])
