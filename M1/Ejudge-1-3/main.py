@@ -1,3 +1,6 @@
+from collections import deque
+
+
 class Graph:
     def __init__(self):
         self.dependencies = {}
@@ -5,45 +8,64 @@ class Graph:
         self.visited = set()
 
     def add_dependency(self, dependency, libraries):
+        self.dependencies.update({dependency: libraries})
         self.dependencies[dependency] = libraries
 
     def add_vulnerable_library(self, library):
         self.vulnerable_libraries.add(library)
 
-    def find_paths(self, start_dependency, current_path):
-        current_path.append(start_dependency)
+    def find_paths(self, start_dependency):
+        queue = deque([(start_dependency, [start_dependency])])
 
-        if start_dependency in self.vulnerable_libraries:
-            print(" ".join(current_path))
+        while queue:
+            current_dependency, current_path = queue.popleft()
 
-        if start_dependency in self.dependencies:
-            for dependency in self.dependencies[start_dependency]:
-                if dependency not in current_path:
-                    self.find_paths(dependency, current_path)
+            if current_dependency in self.vulnerable_libraries:
+                print(" ".join(current_path))
 
-        current_path.pop()
+            if current_dependency in self.dependencies:
+                for dependency in self.dependencies[current_dependency]:
+                    if dependency not in current_path:
+                        new_path = current_path + [dependency]
+                        queue.append((dependency, new_path))
 
 
-if __name__ == "__main__":
+def main():
     graph = Graph()
 
-    # Чтение входных данных
-    vulnerable_libraries = input().split()
-    dependencies = input().split()
+    try:
+        vulnerable_libraries = input().split()
+        for library in vulnerable_libraries:
+            graph.add_vulnerable_library(library)
+
+        direct_dependencies = input().split()
+
+    except EOFError:
+        return
+    except KeyboardInterrupt:
+        return
 
     while True:
         try:
-            line = input().split()
-            dependency = line[0]
-            libraries = line[1:]
-            graph.add_dependency(dependency, libraries)
+            line = input()
+            if not line:
+                continue
+
+            data = line.split()
+            dependency = data[0]
+            dependent_libraries = data[1:]
+            if dependency not in dependent_libraries:
+                graph.add_dependency(dependency, dependent_libraries)
+
         except EOFError:
             break
+        except KeyboardInterrupt:
+            break
 
-    for library in vulnerable_libraries:
-        graph.add_vulnerable_library(library)
+    # Запуск BFS из каждой прямой зависимости
+    for dependency in direct_dependencies:
+        graph.find_paths(dependency)
 
-    # Запуск DFS из каждой прямой зависимости
-    for dependency in dependencies:
-        if dependency not in graph.visited:
-            graph.find_paths(dependency, [])
+
+if __name__ == '__main__':
+    main()
