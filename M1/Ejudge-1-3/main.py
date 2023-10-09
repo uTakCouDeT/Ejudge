@@ -8,7 +8,7 @@ class Graph:
         self.direct_dependencies = set()
 
     def add_dependency(self, dependency, libraries):
-        self.dependencies[dependency] = libraries
+        self.dependencies[dependency] = set(libraries)
 
     def add_vulnerable_library(self, library):
         self.vulnerable_libraries.add(library)
@@ -16,25 +16,24 @@ class Graph:
     def add_direct_dependency(self, library):
         self.direct_dependencies.add(library)
 
-    def BFS_find_paths(self):
+    def find_paths_from_vertex(self, vertex):
+        queue = deque([(vertex, [])])
+
+        while queue:
+            current_vertex, current_path = queue.popleft()
+
+            if current_vertex in current_path:
+                continue
+
+            if current_vertex in self.vulnerable_libraries:
+                print(' '.join(current_path + [current_vertex]))
+
+            for child in self.dependencies.get(current_vertex, []):
+                queue.append((child, current_path + [current_vertex]))
+
+    def find_paths(self):
         for dependency in self.direct_dependencies:
-            queue = deque([(dependency, [dependency])])
-            visited_paths = set()  # Хранит уже посещенные пути
-
-            while queue:
-                current_dependency, current_path = queue.popleft()
-
-                if current_dependency in self.vulnerable_libraries:
-                    path_str = " ".join(current_path)
-                    if path_str not in visited_paths:
-                        visited_paths.add(path_str)
-                        print(path_str)
-
-                if current_dependency in self.dependencies:
-                    for dependency in self.dependencies[current_dependency]:
-                        if dependency not in current_path:
-                            new_path = current_path + [dependency]
-                            queue.append((dependency, new_path))
+            self.find_paths_from_vertex(dependency)
 
 
 def main():
@@ -67,7 +66,7 @@ def main():
         except (EOFError, KeyboardInterrupt):
             break
 
-    graph.BFS_find_paths()
+    graph.find_paths()
 
 
 if __name__ == '__main__':
