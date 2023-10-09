@@ -8,8 +8,7 @@ class Graph:
         self.direct_dependencies = set()
 
     def add_dependency(self, dependency, libraries):
-        if dependency not in self.dependencies:
-            self.dependencies[dependency] = libraries
+        self.dependencies[dependency] = libraries
 
     def add_vulnerable_library(self, library):
         self.vulnerable_libraries.add(library)
