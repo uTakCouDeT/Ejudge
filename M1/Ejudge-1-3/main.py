@@ -10,9 +10,9 @@ class Graph:
     def add_dependency(self, dependency, libraries):
         if dependency in self.dependencies:
             self.dependencies[dependency].update(set(libraries))
-            self.dependencies[dependency].discard(dependency)
         else:
             self.dependencies[dependency] = set(libraries)
+        self.dependencies[dependency].discard(dependency)
 
     def add_vulnerable_library(self, library):
         self.vulnerable_libraries.add(library)
@@ -26,13 +26,14 @@ class Graph:
         while queue:
             current_vertex, current_path = queue.popleft()
 
-            if current_vertex in current_path:
-                continue
-
             if current_vertex in self.vulnerable_libraries:
-                print(' '.join(current_path + [current_vertex]))
+                for lib in current_path:
+                    print(lib, end=' ')
+                print(current_vertex)
 
             for child in self.dependencies.get(current_vertex, []):
+                if child in current_path:  # Хотел использовать сет, для поиска за O(1)
+                    continue  # Но его копирование на каждой итерации всё равно будет O(n)
                 queue.append((child, current_path + [current_vertex]))
 
     def find_paths(self):
