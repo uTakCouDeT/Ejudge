@@ -8,7 +8,11 @@ class Graph:
         self.direct_dependencies = set()
 
     def add_dependency(self, dependency, libraries):
-        self.dependencies[dependency] = set(libraries)
+        if dependency in self.dependencies:
+            self.dependencies[dependency].update(set(libraries))
+            self.dependencies[dependency].discard(dependency)
+        else:
+            self.dependencies[dependency] = set(libraries)
 
     def add_vulnerable_library(self, library):
         self.vulnerable_libraries.add(library)
@@ -60,8 +64,7 @@ def main():
             data = line.split()
             dependency = data[0]
             dependent_libraries = data[1:]
-            if dependency not in dependent_libraries:
-                graph.add_dependency(dependency, dependent_libraries)
+            graph.add_dependency(dependency, dependent_libraries)
 
         except (EOFError, KeyboardInterrupt):
             break
