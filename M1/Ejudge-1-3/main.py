@@ -37,8 +37,9 @@ class Graph:
                 queue.append((child, current_path + [current_vertex]))
 
     def find_paths(self):
-        for dependency in self.direct_dependencies:
-            self.find_paths_from_vertex(dependency)
+        if self.vulnerable_libraries:
+            for dependency in self.direct_dependencies:
+                self.find_paths_from_vertex(dependency)
 
 
 def main():
