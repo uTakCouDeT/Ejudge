@@ -8,11 +8,19 @@ class Graph:
         self.direct_dependencies = set()
 
     def add_dependency(self, dependency, libraries):
-        if dependency in self.dependencies:
-            self.dependencies[dependency].update(set(libraries))
-        else:
-            self.dependencies[dependency] = set(libraries)
-        self.dependencies[dependency].discard(dependency)
+        for library in set(libraries):
+            if library == dependency:
+                continue
+            if library in self.dependencies:
+                self.dependencies[library].add(dependency)
+            else:
+                self.dependencies[library] = {dependency}
+
+        # if dependency in self.dependencies:
+        #     self.dependencies[dependency].update(set(libraries))
+        # else:
+        #     self.dependencies[dependency] = set(libraries)
+        # self.dependencies[dependency].discard(dependency)
 
     def add_vulnerable_library(self, library):
         self.vulnerable_libraries.add(library)
@@ -25,21 +33,24 @@ class Graph:
 
         while queue:
             current_vertex, current_path = queue.popleft()
+            current_path = [current_vertex] + current_path
 
-            if current_vertex in self.vulnerable_libraries:
-                for lib in current_path:
-                    print(lib, end=' ')
-                print(current_vertex)
+            if current_vertex in self.direct_dependencies:
+                print(' '.join(current_path))
 
             for child in self.dependencies.get(current_vertex, []):
                 if child in current_path:  # Хотел использовать сет, для поиска за O(1)
                     continue  # Но его копирование на каждой итерации всё равно будет O(n)
-                queue.append((child, current_path + [current_vertex]))
+                queue.append((child, current_path))
 
     def find_paths(self):
-        if self.vulnerable_libraries:
-            for dependency in self.direct_dependencies:
-                self.find_paths_from_vertex(dependency)
+        if self.direct_dependencies:
+            for library in self.vulnerable_libraries:
+                self.find_paths_from_vertex(library)
+
+        # if self.vulnerable_libraries:
+        #     for dependency in self.direct_dependencies:
+        #         self.find_paths_from_vertex(dependency)
 
 
 def main():
@@ -64,9 +75,10 @@ def main():
                 continue
 
             data = line.split()
-            dependency = data[0]
-            dependent_libraries = data[1:]
-            graph.add_dependency(dependency, dependent_libraries)
+            if len(data) >= 2:
+                dependency = data[0]
+                dependent_libraries = data[1:]
+                graph.add_dependency(dependency, dependent_libraries)
 
         except (EOFError, KeyboardInterrupt):
             break
