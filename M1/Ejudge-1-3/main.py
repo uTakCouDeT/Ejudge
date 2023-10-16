@@ -28,25 +28,58 @@ class Graph:
     def add_direct_dependency(self, library):
         self.direct_dependencies.add(library)
 
-    def find_paths_from_vertex(self, vertex):
-        queue = deque([(vertex, [])])
+    # def find_paths_from_vertex(self, vertex):
+    #     stack = deque([vertex])
+    #     visited = set()
+    #     path = []
+    #
+    #     while stack:
+    #         current_vertex = stack.pop()
+    #
+    #         path.append(current_vertex)
+    #         visited.add(current_vertex)
+    #
+    #         if current_vertex in self.direct_dependencies:
+    #             print(' '.join(reversed(path)))
+    #
+    #         if current_vertex in self.dependencies.keys():
+    #             have_not_visited = True
+    #             stack.append(current_vertex)
+    #             for child in self.dependencies[current_vertex]:
+    #                 if child in visited:
+    #                     continue
+    #                 have_not_visited = False
+    #                 stack.append(child)
+    #             if not have_not_visited:
+    #                 stack.pop()
+    #                 path.pop()
+    #                 visited.remove(current_vertex)
 
-        while queue:
-            current_vertex, current_path = queue.popleft()
-            current_path = [current_vertex] + current_path
+    def find_paths_from_vertex(self, vertex, path, visited):
+        path.append(vertex)
+        visited.add(vertex)
 
-            if current_vertex in self.direct_dependencies:
-                print(' '.join(current_path))
+        if vertex in self.direct_dependencies:
+            print(' '.join(reversed(path)))
 
-            for child in self.dependencies.get(current_vertex, []):
-                if child in current_path:  # Хотел использовать сет, для поиска за O(1)
-                    continue  # Но его копирование на каждой итерации всё равно будет O(n)
-                queue.append((child, current_path))
+        if vertex not in self.dependencies.keys():
+            path.pop()
+            visited.remove(vertex)
+            return
+
+        for child in self.dependencies[vertex]:
+            if child in visited:
+                continue
+            self.find_paths_from_vertex(child, path, visited)
+
+        path.pop()
+        visited.remove(vertex)
 
     def find_paths(self):
         if self.direct_dependencies:
             for library in self.vulnerable_libraries:
-                self.find_paths_from_vertex(library)
+                # self.find_paths_from_vertex(library)
+                self.find_paths_from_vertex(library, [], set())
 
         # if self.vulnerable_libraries:
         #     for dependency in self.direct_dependencies:
