@@ -28,58 +28,59 @@ class Graph:
     def add_direct_dependency(self, library):
         self.direct_dependencies.add(library)
 
-    # def find_paths_from_vertex(self, vertex):
-    #     stack = deque([vertex])
-    #     visited = set()
-    #     path = []
+    def find_paths_from_vertex(self, vertex):
+        stack = deque()
+        visited = set()
+        path = []
+
+        stack.append((vertex, iter(self.dependencies.get(vertex, set()))))
+
+        while stack:
+            current_vertex, children = stack[-1]
+
+            try:
+                child = next(children)
+
+                for child in self.dependencies.get(current_vertex, set()):
+                    if child not in visited:
+                        path.append(child)
+                        visited.add(child)
+
+                        if child in self.direct_dependencies:
+                            print(' '.join(reversed(path)))
+
+                        stack.append((child, iter(self.dependencies.get(child, set()))))
+            except StopIteration:
+                # All children of current_vertex have been visited
+                stack.pop()
+                path.pop()
+                visited.remove(current_vertex)
+
+    # def find_paths_from_vertex(self, vertex, path, visited):
+    #     path.append(vertex)
+    #     visited.add(vertex)
     #
-    #     while stack:
-    #         current_vertex = stack.pop()
+    #     if vertex in self.direct_dependencies:
+    #         print(' '.join(reversed(path)))
     #
-    #         path.append(current_vertex)
-    #         visited.add(current_vertex)
+    #     if vertex not in self.dependencies.keys():
+    #         path.pop()
+    #         visited.remove(vertex)
+    #         return
     #
-    #         if current_vertex in self.direct_dependencies:
-    #             print(' '.join(reversed(path)))
+    #     for child in self.dependencies[vertex]:
+    #         if child in visited:
+    #             continue
+    #         self.find_paths_from_vertex(child, path, visited)
     #
-    #         if current_vertex in self.dependencies.keys():
-    #             have_not_visited = True
-    #             stack.append(current_vertex)
-    #             for child in self.dependencies[current_vertex]:
-    #                 if child in visited:
-    #                     continue
-    #                 have_not_visited = False
-    #                 stack.append(child)
-    #             if not have_not_visited:
-    #                 stack.pop()
-    #                 path.pop()
-    #                 visited.remove(current_vertex)
-
-    def find_paths_from_vertex(self, vertex, path, visited):
-        path.append(vertex)
-        visited.add(vertex)
-
-        if vertex in self.direct_dependencies:
-            print(' '.join(reversed(path)))
-
-        if vertex not in self.dependencies.keys():
-            path.pop()
-            visited.remove(vertex)
-            return
-
-        for child in self.dependencies[vertex]:
-            if child in visited:
-                continue
-            self.find_paths_from_vertex(child, path, visited)
-
-        path.pop()
-        visited.remove(vertex)
+    #     path.pop()
+    #     visited.remove(vertex)
 
     def find_paths(self):
         if self.direct_dependencies:
             for library in self.vulnerable_libraries:
-                # self.find_paths_from_vertex(library)
-                self.find_paths_from_vertex(library, [], set())
+                self.find_paths_from_vertex(library)
+                # self.find_paths_from_vertex(library, [], set())
 
         # if self.vulnerable_libraries:
         #     for dependency in self.direct_dependencies:
