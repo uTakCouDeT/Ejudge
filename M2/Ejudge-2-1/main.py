@@ -143,7 +143,7 @@ class SplayTree:
         if self.root:
             lines = []
             self._print_tree(self.root, 0, '_', lines)
-            for line in lines[:-1] if lines[-1] == ["_", "_"] else lines:
+            for line in lines[:-1] if all(i == "_" for i in lines[-1]) else lines:
                 print(" ".join(line))
         else:
             print("_")
