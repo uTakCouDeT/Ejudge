@@ -3,117 +3,164 @@ import sys
 
 
 class Node:
-    def __init__(self, key, value):
+    def __init__(self, key, value, parent=None):
         self.key = key
         self.value = value
         self.left = None
         self.right = None
+        self.parent = parent  # без ссылки на родителя тяжко
 
 
 class SplayTree:
     def __init__(self):
         self.root = None
 
-    # Вспомогательная функция для левого поворота узла x.
     def _rotate_left(self, x):
         y = x.right
         x.right = y.left
+        if y.left:
+            y.left.parent = x
+        y.parent = x.parent
+        if x.parent is None:  # x был корнем
+            self.root = y
+        elif x == x.parent.left:
+            x.parent.left = y
+        else:
+            x.parent.right = y
         y.left = x
-        return y
+        x.parent = y
 
-    # Вспомогательная функция для правого поворота узла x.
     def _rotate_right(self, x):
         y = x.left
         x.left = y.right
+        if y.right:
+            y.right.parent = x
+        y.parent = x.parent
+        if x.parent is None:  # x был корнем
+            self.root = y
+        elif x == x.parent.right:
+            x.parent.right = y
+        else:
+            x.parent.left = y
         y.right = x
-        return y
+        x.parent = y
 
-    # Основная функция, реализующая операцию splay.
-    def _splay(self, root, key):
-        if root is None or root.key == key:
-            return root
+    def _splay(self, node):
+        while node.parent:
+            if node.parent.parent is None:
+                if node == node.parent.left:
+                    self._rotate_right(node.parent)
+                else:
+                    self._rotate_left(node.parent)
+            elif node == node.parent.left and node.parent == node.parent.parent.left:
+                self._rotate_right(node.parent.parent)
+                self._rotate_right(node.parent)
+            elif node == node.parent.right and node.parent == node.parent.parent.right:
+                self._rotate_left(node.parent.parent)
+                self._rotate_left(node.parent)
+            elif node == node.parent.right and node.parent == node.parent.parent.left:
+                self._rotate_left(node.parent)
+                self._rotate_right(node.parent)
+            elif node == node.parent.left and node.parent == node.parent.parent.right:
+                self._rotate_right(node.parent)
+                self._rotate_left(node.parent)
+        self.root = node
 
-        if root.key > key:
-            if root.left is None:
-                return root
-            if root.left.key > key:
-                # Zig-Zig или Zig
-                root.left.left = self._splay(root.left.left, key)
-                root = self._rotate_right(root)
-            elif root.left.key < key:
-                # Zig-Zag
-                root.left.right = self._splay(root.left.right, key)
-                if root.left.right:
-                    root.left = self._rotate_left(root.left)
-            return root if root.left is None else self._rotate_right(root)
-        else:
-            if root.right is None:
-                return root
-            if root.right.key > key:
-                # Zig-Zag
-                root.right.left = self._splay(root.right.left, key)
-                if root.right.left:
-                    root.right = self._rotate_right(root.right)
-            elif root.right.key < key:
-                # Zig-Zig или Zig
-                root.right.right = self._splay(root.right.right, key)
-                root = self._rotate_left(root)
-            return root if root.right is None else self._rotate_left(root)
-
-    # Метод для добавления узла с ключом key и значением value.
     def add(self, key, value):
-        new_node = Node(key, value)
-        if self.root is None:
-            self.root = new_node
-        else:
-            self.root = self._insert(self.root, new_node)
-        self.root = self._splay(self.root, key)
-
-    # Метод для добавления узла в обыкновенное ДДП.
-    def _insert(self, root, new_node):
-        if root is None:
-            return new_node
-
-        if new_node.key < root.key:
-            root.left = self._insert(root.left, new_node)
-        elif new_node.key > root.key:
-            root.right = self._insert(root.right, new_node)
-
-        return root
-
-    # Метод для обновления значения узла с ключом key на новое значение value.
-    def set(self, key, value):
-        self.root = self._splay(self.root, key)
-        if self.root and self.root.key == key:
-            self.root.value = value
-        else:
-            print("error")
-
-    # Метод для удаления узла с ключом key.
-    def delete(self, key):
-        self.root = self._splay(self.root, key)
-        if self.root and self.root.key == key:
-            if self.root.left is None:
-                self.root = self.root.right
-            elif self.root.right is None:
-                self.root = self.root.left
+        if not self.root:
+            self.root = Node(key, value)
+            return
+        node = self.root
+        while True:
+            if key < node.key:
+                if node.left:
+                    node = node.left
+                else:
+                    node.left = Node(key, value, parent=node)
+                    self._splay(node.left)
+                    break
+            elif key > node.key:
+                if node.right:
+                    node = node.right
+                else:
+                    node.right = Node(key, value, parent=node)
+                    self._splay(node.right)
+                    break
             else:
-                left_subtree = self.root.left
-                right_subtree = self.root.right
-                self.root = self._splay(left_subtree, left_subtree._max.key)
-                self.root.right = right_subtree
-        else:
-            print("error")
+                print("error")  # Ключ уже существует
+                self._splay(node)
+                break
 
-    # Метод для поиска узла с ключом key.
+    def delete(self, key):
+        node_to_delete = self._search(key)
+        if not node_to_delete:
+            print("error")
+            return
+
+        if node_to_delete.left:
+            left_subtree = node_to_delete.left
+            left_subtree.parent = None
+            right_subtree = node_to_delete.right
+
+            max_node = left_subtree
+            while max_node.right:
+                max_node = max_node.right
+            self._splay(max_node)
+
+            max_node.right = right_subtree
+            if right_subtree:
+                right_subtree.parent = max_node
+
+            self.root = max_node
+        else:
+            self.root = node_to_delete.right
+            if self.root:
+                self.root.parent = None
+
+    def _search(self, key):
+        node = self.root
+        while node:
+            if key < node.key:
+                if node.left is None:
+                    self._splay(node)
+                    break
+                node = node.left
+            elif key > node.key:
+                if node.right is None:
+                    self._splay(node)
+                    break
+                node = node.right
+            else:  # Ключ найден
+                self._splay(node)
+                return node
+        return None
+
     def search(self, key):
-        self.root = self._splay(self.root, key)
-        if self.root and self.root.key == key:
+        node = self._search(key)
+        if node:
             print(f"1 {self.root.value}")
         else:
             print("0")
 
-    # Метод для поиска минимального узла в дереве.
+    def set(self, key, value):
+        node = self._search(key)
+        if node:
+            self.root.value = value
+        else:
+            print("error")
+
+    def _min(self, node):
+        while node.left is not None:
+            node = node.left
+        self._splay(node)
+        return node
+
+    def _max(self, node):
+        while node.right is not None:
+            node = node.right
+        self._splay(node)
+        return node
+
     def min(self):
         if self.root:
             min_node = self._min(self.root)
@@ -121,7 +168,6 @@ class SplayTree:
         else:
             print("error")
 
-    # Метод для поиска максимального узла в дереве.
     def max(self):
         if self.root:
             max_node = self._max(self.root)
@@ -129,76 +175,70 @@ class SplayTree:
         else:
             print("error")
 
-    # Вспомогательная функция для поиска минимального узла в поддереве.
-    def _min(self, root):
-        while root.left:
-            root = root.left
-        return root
+    def _print_tree(self):
+        lines = []
+        level = 0
+        current_level_nodes = [self.root]
 
-    # Вспомогательная функция для поиска максимального узла в поддереве.
-    def _max(self, root):
-        while root.right:
-            root = root.right
-        return root
-
-    # Вспомогательная функция для печати дерева.
-    def _print_tree(self, root, level, parent_key, lines):
-        if level == len(lines):
+        while any(current_level_nodes):
             lines.append([])
-        if root:
-            if root == self.root:
-                lines[level].append(f"[{root.key} {root.value}]")
-            else:
-                lines[level].append(f"[{root.key} {root.value} {parent_key}]")
-            self._print_tree(root.left, level + 1, root.key, lines)
-            self._print_tree(root.right, level + 1, root.key, lines)
-        else:
-            lines[level].append("_")
+            next_level_nodes = []
 
-    # Метод для печати дерева.
+            for node in current_level_nodes:
+                if node:
+                    lines[level].append(
+                        f"[{node.key} {node.value}]" if node.parent is None else f"[{node.key} {node.value} {node.parent.key}]")
+                    next_level_nodes.extend([node.left, node.right])
+                else:
+                    lines[level].append("_")
+                    next_level_nodes.extend([None, None])
+
+            current_level_nodes = next_level_nodes
+            level += 1
+
+        return lines
+
     def print_tree(self):
-        if self.root:
-            lines = []
-            self._print_tree(self.root, 0, '_', lines)
-            for line in lines[:-1] if all(i == "_" for i in lines[-1]) else lines:
-                print(" ".join(line))
-        else:
+        if not self.root:
             print("_")
+        else:
+            lines = self._print_tree()
+            for line in lines:
+                print(" ".join(line))
 
 
 def main():
     splay_tree = SplayTree()
     command_patterns = [
-        re.compile(r'^add (\d+) (\S+)$'),
-        re.compile(r'^set (\d+) (\S+)$'),
-        re.compile(r'^delete (\d+)$'),
-        re.compile(r'^search (\d+)$'),
+        re.compile(r'^add ([-+]?\d+) (\S*)$'),
+        re.compile(r'^set ([-+]?\d+) (\S*)$'),
+        re.compile(r'^delete ([-+]?\d+)$'),
+        re.compile(r'^search ([-+]?\d+)$'),
         re.compile(r'^min$'),
         re.compile(r'^max$'),
         re.compile(r'^print$'),
     ]
 
     for line in sys.stdin:
-        command = line.strip()
-        if not command:
+        if not line or line == "\n":
             continue
 
         for pattern in command_patterns:
-            match = pattern.match(command)
+            match = pattern.match(line)
             if match:
-                if command.startswith("add"):
-                    splay_tree.add(int(match.group(1)), match.group(2))
-                elif command.startswith("set"):
-                    splay_tree.set(int(match.group(1)), match.group(2))
-                elif command.startswith("delete"):
+                if line.startswith("add"):
+                    splay_tree.add(int(match.group(1)), str(match.group(2)))
+                elif line.startswith("set"):
+                    splay_tree.set(int(match.group(1)), str(match.group(2)))
+                elif line.startswith("delete"):
                     splay_tree.delete(int(match.group(1)))
-                elif command.startswith("search"):
+                elif line.startswith("search"):
                     splay_tree.search(int(match.group(1)))
-                elif command.startswith("min"):
+                elif line.startswith("min"):
                     splay_tree.min()
-                elif command.startswith("max"):
+                elif line.startswith("max"):
                     splay_tree.max()
-                elif command.startswith("print"):
+                elif line.startswith("print"):
                     splay_tree.print_tree()
                 break
         else:
