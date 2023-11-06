@@ -100,18 +100,22 @@ class SplayTree:
         if node_to_delete.left:
             left_subtree = node_to_delete.left
             left_subtree.parent = None
-            right_subtree = node_to_delete.right
 
-            max_node = left_subtree
-            while max_node.right:
-                max_node = max_node.right
-            self._splay(max_node)
+            if node_to_delete.right:
+                right_subtree = node_to_delete.right
 
-            max_node.right = right_subtree
-            if right_subtree:
-                right_subtree.parent = max_node
+                max_node = left_subtree
+                while max_node.right:
+                    max_node = max_node.right
+                self._splay(max_node)
 
-            self.root = max_node
+                max_node.right = right_subtree
+                if right_subtree:
+                    right_subtree.parent = max_node
+
+                self.root = max_node
+            else:
+                self.root = left_subtree
         else:
             self.root = node_to_delete.right
             if self.root:
