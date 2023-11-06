@@ -14,18 +14,21 @@ class SplayTree:
     def __init__(self):
         self.root = None
 
+    # Вспомогательная функция для левого поворота узла x.
     def _rotate_left(self, x):
         y = x.right
         x.right = y.left
         y.left = x
         return y
 
+    # Вспомогательная функция для правого поворота узла x.
     def _rotate_right(self, x):
         y = x.left
         x.left = y.right
         y.right = x
         return y
 
+    # Основная функция, реализующая операцию splay.
     def _splay(self, root, key):
         if root is None or root.key == key:
             return root
@@ -34,9 +37,11 @@ class SplayTree:
             if root.left is None:
                 return root
             if root.left.key > key:
+                # Zig-Zig или Zig
                 root.left.left = self._splay(root.left.left, key)
                 root = self._rotate_right(root)
             elif root.left.key < key:
+                # Zig-Zag
                 root.left.right = self._splay(root.left.right, key)
                 if root.left.right:
                     root.left = self._rotate_left(root.left)
@@ -45,34 +50,38 @@ class SplayTree:
             if root.right is None:
                 return root
             if root.right.key > key:
+                # Zig-Zag
                 root.right.left = self._splay(root.right.left, key)
                 if root.right.left:
                     root.right = self._rotate_right(root.right)
             elif root.right.key < key:
+                # Zig-Zig или Zig
                 root.right.right = self._splay(root.right.right, key)
                 root = self._rotate_left(root)
             return root if root.right is None else self._rotate_left(root)
 
+    # Метод для добавления узла с ключом key и значением value.
     def add(self, key, value):
+        new_node = Node(key, value)
         if self.root is None:
-            self.root = Node(key, value)
+            self.root = new_node
         else:
-            self.root = self._splay(self.root, key)
-            if self.root.key == key:
-                self.root.value = value
-            elif self.root.key > key:
-                new_node = Node(key, value)
-                new_node.left = self.root.left
-                new_node.right = self.root
-                self.root.left = None
-                self.root = new_node
-            else:
-                new_node = Node(key, value)
-                new_node.right = self.root.right
-                new_node.left = self.root
-                self.root.right = None
-                self.root = new_node
+            self.root = self._insert(self.root, new_node)
+        self.root = self._splay(self.root, key)
 
+    # Метод для добавления узла в обыкновенное ДДП.
+    def _insert(self, root, new_node):
+        if root is None:
+            return new_node
+
+        if new_node.key < root.key:
+            root.left = self._insert(root.left, new_node)
+        elif new_node.key > root.key:
+            root.right = self._insert(root.right, new_node)
+
+        return root
+
+    # Метод для обновления значения узла с ключом key на новое значение value.
     def set(self, key, value):
         self.root = self._splay(self.root, key)
         if self.root and self.root.key == key:
@@ -80,6 +89,7 @@ class SplayTree:
         else:
             print("error")
 
+    # Метод для удаления узла с ключом key.
     def delete(self, key):
         self.root = self._splay(self.root, key)
         if self.root and self.root.key == key:
@@ -90,11 +100,12 @@ class SplayTree:
             else:
                 left_subtree = self.root.left
                 right_subtree = self.root.right
-                self.root = self._splay(left_subtree, key)
+                self.root = self._splay(left_subtree, left_subtree._max.key)
                 self.root.right = right_subtree
         else:
             print("error")
 
+    # Метод для поиска узла с ключом key.
     def search(self, key):
         self.root = self._splay(self.root, key)
         if self.root and self.root.key == key:
@@ -102,6 +113,7 @@ class SplayTree:
         else:
             print("0")
 
+    # Метод для поиска минимального узла в дереве.
     def min(self):
         if self.root:
             min_node = self._min(self.root)
@@ -109,6 +121,7 @@ class SplayTree:
         else:
             print("error")
 
+    # Метод для поиска максимального узла в дереве.
     def max(self):
         if self.root:
             max_node = self._max(self.root)
@@ -116,16 +129,19 @@ class SplayTree:
         else:
             print("error")
 
+    # Вспомогательная функция для поиска минимального узла в поддереве.
     def _min(self, root):
         while root.left:
             root = root.left
         return root
 
+    # Вспомогательная функция для поиска максимального узла в поддереве.
     def _max(self, root):
         while root.right:
             root = root.right
         return root
 
+    # Вспомогательная функция для печати дерева.
     def _print_tree(self, root, level, parent_key, lines):
         if level == len(lines):
             lines.append([])
@@ -139,6 +155,7 @@ class SplayTree:
         else:
             lines[level].append("_")
 
+    # Метод для печати дерева.
     def print_tree(self):
         if self.root:
             lines = []
