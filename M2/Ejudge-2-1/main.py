@@ -8,20 +8,23 @@ class Node:
         self.value = value
         self.left = None
         self.right = None
-        self.parent = parent  # без ссылки на родителя тяжко
+        self.parent = parent  # Без ссылки на родителя итеративно делать тяжко
 
 
 class SplayTree:
     def __init__(self):
         self.root = None
 
+    # Повороты можно объединть в один метод,
+    # но это наплодит ненужные проверки и дополнительные переменные (а оно нам не надо)
+    # Ну и как по мне, сплей в таком случае понятнее выглядит
     def _rotate_left(self, x):
         y = x.right
         x.right = y.left
         if y.left:
             y.left.parent = x
         y.parent = x.parent
-        if x.parent is None:  # x был корнем
+        if x.parent is None:
             self.root = y
         elif x == x.parent.left:
             x.parent.left = y
@@ -36,7 +39,7 @@ class SplayTree:
         if y.right:
             y.right.parent = x
         y.parent = x.parent
-        if x.parent is None:  # x был корнем
+        if x.parent is None:
             self.root = y
         elif x == x.parent.right:
             x.parent.right = y
@@ -47,17 +50,20 @@ class SplayTree:
 
     def _splay(self, node):
         while node.parent:
+            # Zig
             if node.parent.parent is None:
                 if node == node.parent.left:
                     self._rotate_right(node.parent)
                 else:
                     self._rotate_left(node.parent)
+            # Zig-Zig
             elif node == node.parent.left and node.parent == node.parent.parent.left:
                 self._rotate_right(node.parent.parent)
                 self._rotate_right(node.parent)
             elif node == node.parent.right and node.parent == node.parent.parent.right:
                 self._rotate_left(node.parent.parent)
                 self._rotate_left(node.parent)
+            # Zig-Zag
             elif node == node.parent.right and node.parent == node.parent.parent.left:
                 self._rotate_left(node.parent)
                 self._rotate_right(node.parent)
@@ -92,7 +98,7 @@ class SplayTree:
                 break
 
     def delete(self, key):
-        node_to_delete = self._search(key)
+        node_to_delete = self._search(key)  # Сплей применяется внутри поиска
         if not node_to_delete:
             print("error")
             return
@@ -104,10 +110,7 @@ class SplayTree:
             if node_to_delete.right:
                 right_subtree = node_to_delete.right
 
-                max_node = left_subtree
-                while max_node.right:
-                    max_node = max_node.right
-                self._splay(max_node)
+                max_node = self._max(left_subtree)  # И тут тоже
 
                 max_node.right = right_subtree
                 if right_subtree:
@@ -134,7 +137,7 @@ class SplayTree:
                     self._splay(node)
                     break
                 node = node.right
-            else:  # Ключ найден
+            else:
                 self._splay(node)
                 return node
         return None
