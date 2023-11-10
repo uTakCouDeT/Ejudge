@@ -5,12 +5,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0ebeb7b3-c16a-405b-b50e-fed715cff8cb" name="Changes" comment="]">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
@@ -68,7 +76,13 @@
       <workItem from="1698323850264" duration="1037000" />
       <workItem from="1698666789100" duration="1042000" />
       <workItem from="1699012060966" duration="272000" />
-      <workItem from="1699209519850" duration="23406000" />
+      <workItem from="1699209519850" duration="47153000" />
+      <workItem from="1699531575332" duration="4437000" />
+      <workItem from="1699536603829" duration="28000" />
+      <workItem from="1699536677534" duration="14337000" />
+      <workItem from="1699616289281" duration="66000" />
+      <workItem from="1699616379583" duration="316000" />
+      <workItem from="1699621458790" duration="80000" />
     </task>
     <task id="LOCAL-00001" summary="]">
       <created>1699216104260</created>
@@ -84,17 +98,35 @@
       <option name="project" value="LOCAL" />
       <updated>1699216895334</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="]">
+      <created>1699290875569</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1699290875569</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="]" />
     <option name="LAST_COMMIT_MESSAGE" value="]" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Ejudge_2_1$main.coverage" NAME="main Coverage Results" MODIFIED="1699286278390" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Ejudge_2_1$main.coverage" NAME="main Coverage Results" MODIFIED="1699546362321" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

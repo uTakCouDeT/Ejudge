@@ -1,5 +1,9 @@
 import re
 import sys
+from collections import deque
+
+
+# from memory_profiler import profile
 
 
 class Node:
@@ -8,12 +12,12 @@ class Node:
         self.value = value
         self.left = None
         self.right = None
-        self.parent = parent  # Без ссылки на родителя итеративно делать тяжко
+        self.parent = parent  # Без ссылки на родителя тяжко
 
 
 class SplayTree:
     def __init__(self):
-        self.root = None
+        self._root = None
 
     # Повороты можно объединть в один метод,
     # но это наплодит ненужные проверки и дополнительные переменные (а оно нам не надо)
@@ -25,7 +29,7 @@ class SplayTree:
             y.left.parent = x
         y.parent = x.parent
         if x.parent is None:
-            self.root = y
+            self._root = y
         elif x == x.parent.left:
             x.parent.left = y
         else:
@@ -40,7 +44,7 @@ class SplayTree:
             y.right.parent = x
         y.parent = x.parent
         if x.parent is None:
-            self.root = y
+            self._root = y
         elif x == x.parent.right:
             x.parent.right = y
         else:
@@ -70,13 +74,13 @@ class SplayTree:
             elif node == node.parent.left and node.parent == node.parent.parent.right:
                 self._rotate_right(node.parent)
                 self._rotate_left(node.parent)
-        self.root = node
+        self._root = node
 
     def add(self, key, value):
-        if not self.root:
-            self.root = Node(key, value)
+        if not self._root:
+            self._root = Node(key, value)
             return
-        node = self.root
+        node = self._root
         while True:
             if key < node.key:
                 if node.left:
@@ -113,19 +117,18 @@ class SplayTree:
                 max_node = self._max(left_subtree)  # И тут тоже
 
                 max_node.right = right_subtree
-                if right_subtree:
-                    right_subtree.parent = max_node
+                right_subtree.parent = max_node
 
-                self.root = max_node
+                self._root = max_node
             else:
-                self.root = left_subtree
+                self._root = left_subtree
         else:
-            self.root = node_to_delete.right
-            if self.root:
-                self.root.parent = None
+            self._root = node_to_delete.right
+            if self._root:
+                self._root.parent = None
 
     def _search(self, key):
-        node = self.root
+        node = self._root
         while node:
             if key < node.key:
                 if node.left is None:
@@ -145,14 +148,14 @@ class SplayTree:
     def search(self, key):
         node = self._search(key)
         if node:
-            print(f"1 {self.root.value}")
+            print(f"1 {self._root.value}")
         else:
             print("0")
 
     def set(self, key, value):
         node = self._search(key)
         if node:
-            self.root.value = value
+            self._root.value = value
         else:
             print("error")
 
@@ -169,49 +172,135 @@ class SplayTree:
         return node
 
     def min(self):
-        if self.root:
-            min_node = self._min(self.root)
+        if self._root:
+            min_node = self._min(self._root)
             print(f"{min_node.key} {min_node.value}")
         else:
             print("error")
 
     def max(self):
-        if self.root:
-            max_node = self._max(self.root)
+        if self._root:
+            max_node = self._max(self._root)
             print(f"{max_node.key} {max_node.value}")
         else:
             print("error")
 
+    # @profile
     def _print_tree(self):
-        lines = []
-        level = 0
-        current_level_nodes = [self.root]
+        if not self._root:
+            print("_")
+            return
 
-        while any(current_level_nodes):
-            lines.append([])
-            next_level_nodes = []
+        print(f"[{self._root.key} {self._root.value}]")
 
-            for node in current_level_nodes:
-                if node:
-                    lines[level].append(
-                        f"[{node.key} {node.value}]" if node.parent is None else f"[{node.key} {node.value} {node.parent.key}]")
-                    next_level_nodes.extend([node.left, node.right])
-                else:
-                    lines[level].append("_")
-                    next_level_nodes.extend([None, None])
+        level_length = 2
+        count = 0
+        join_buffer_count = 0
+        queue = deque()
+        queue.appendleft(self._root.left)
+        queue.appendleft(self._root.right)
+        line = []
 
-            current_level_nodes = next_level_nodes
-            level += 1
+        while True:
+            node = queue.pop()
+            join_buffer_count += 1
+            count += 1
+            if node:
+                line.append(f"[{node.key} {node.value} {node.parent.key}]")
+                queue.appendleft(node.left)
+                queue.appendleft(node.right)
+            else:
+                line.append("_")
+                queue.appendleft(None)
+                queue.appendleft(None)
 
-        return lines
+            # выводить через print("...", end=" ") каждый элемент долго
+            # а через " ".join(line) весь слой дорого (хранить массив на 2^24 элементов в 12 тесте не круто)
+            # по этому, чтобы, как говорится, и рыбку съесть и тесты пройти, добавим буффер
+            # Вершины выводятся небольшими пакетами и после вывода удаляются из памяти
+            # Работает быстро, памяти жрёт мало. Красота.
+            if join_buffer_count == 1000:                  # 1000 кстати для скорости вполне достаточно
+                print(" ".join(line), end=" ")        # Можно его вообще изменять динамически в зависимости от слоя
+                join_buffer_count = 0                 # Но я пожалуй лучше пойду остальные задачи доделывать
+                line = []
+
+            if count == level_length:
+                print(" ".join(line))
+                join_buffer_count = 0
+                line = []
+                level_length *= 2
+                count = 0
+                if not any(queue):
+                    break
+
+    #                   ^
+    #                   |       вторая ступень эволюции
+    #                   |
+
+    # def _print_tree(self):
+    #     if not self._root:
+    #         print("_")
+    #         return
+    #
+    #     print(f"[{self._root.key} {self._root.value}]")
+    #
+    #     level_length = 2
+    #     count = 0
+    #     queue = deque()
+    #     queue.appendleft(self._root.left)
+    #     queue.appendleft(self._root.right)
+    #     line = []
+    #
+    #     while True:
+    #         node = queue.pop()
+    #         count += 1
+    #         if node:
+    #             line.append(f"[{node.key} {node.value} {node.parent.key}]")
+    #             queue.appendleft(node.left)
+    #             queue.appendleft(node.right)
+    #         else:
+    #             line.append("_")
+    #             queue.appendleft(None)
+    #             queue.appendleft(None)
+    #
+    #         if count == level_length:
+    #             print(" ".join(line))
+    #             level_length *= 2
+    #             count = 0
+    #             line = []
+    #             if not any(queue):
+    #                 break
+
+    #                   ^
+    #                   |       первая ступень эволюции
+    #                   |
+
+    # def _print_tree(self):
+    #     if not self._root:
+    #         print("_")
+    #         return
+    #
+    #     print(f"[{self._root.key} {self._root.value}]")
+    #     current_level_nodes = [self._root.left, self._root.right]
+    #     while any(current_level_nodes):
+    #         next_level_nodes = []
+    #         line = []
+    #
+    #         for node in current_level_nodes:
+    #             if node:
+    #                 line.append(f"[{node.key} {node.value} {node.parent.key}]")
+    #                 next_level_nodes.append(node.left)
+    #                 next_level_nodes.append(node.right)
+    #             else:
+    #                 line.append("_")
+    #                 next_level_nodes.append(None)
+    #                 next_level_nodes.append(None)
+    #         print(" ".join(line))
+    #
+    #         current_level_nodes = next_level_nodes
 
     def print_tree(self):
-        if not self.root:
-            print("_")
-        else:
-            lines = self._print_tree()
-            for line in lines:
-                print(" ".join(line))
+        self._print_tree()
 
 
 def main():
@@ -226,10 +315,10 @@ def main():
         re.compile(r'^print$'),
     ]
 
+    # try:
     for line in sys.stdin:
         if not line or line == "\n":
             continue
-
         for pattern in command_patterns:
             match = pattern.match(line)
             if match:
@@ -250,6 +339,8 @@ def main():
                 break
         else:
             print("error")
+    # except KeyboardInterrupt:
+    #     return 0
 
 
 if __name__ == "__main__":
