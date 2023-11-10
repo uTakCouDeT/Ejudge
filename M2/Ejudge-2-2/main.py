@@ -1,168 +1,183 @@
-import heapq
+import re
+import sys
 
 
-class HeapNode:
-    def __init__(self, key, value):
-        self.key = key
-        self.value = value
-
-
-class BinaryMinHeap:
+class MinHeap:
     def __init__(self):
-        self.heap = []
-        self.key_to_index = {}
-        self.next_index = 0  # Для генерации уникальных индексов
+        self.__heap = []
+        self.__positions = {}  # хеш-таблица для хранения позиций ключей в куче
 
-    def add(self, key, value):
-        if key in self.key_to_index:
-            # Update the value if the key already exists
-            index = self.key_to_index[key]
-            self.heap[index] = HeapNode(key, value)
-            self._heapify_up(index)
-        else:
-            # Add a new key-value pair
-            node = HeapNode(key, value)
-            self.heap.append(node)
-            self.key_to_index[key] = self.next_index
-            self._heapify_up(self.next_index)
-            self.next_index += 1
+    def __swap(self, i, j):
+        self.__positions[self.__heap[i][0]], self.__positions[self.__heap[j][0]] = j, i
+        self.__heap[i], self.__heap[j] = self.__heap[j], self.__heap[i]
 
-    def set(self, key, value):
-        if key in self.key_to_index:
-            index = self.key_to_index[key]
-            self.heap[index].value = value
-            self._heapify_up(index)
-        else:
-            # If the key doesn't exist, add it
-            self.add(key, value)
+    def __sift_up(self, index):
+        parent = (index - 1) // 2
+        while index > 0 and self.__heap[index][0] < self.__heap[parent][0]:
+            self.__swap(index, parent)
+            index = parent
+            parent = (index - 1) // 2
 
-    def delete(self, key):
-        if key in self.key_to_index:
-            index = self.key_to_index[key]
-            last_node = self.heap.pop()
-            if index < len(self.heap):
-                self.heap[index] = last_node
-                self.key_to_index[last_node.key] = index
-                self._heapify_up(index)
-                self._heapify_down(index)
-            del self.key_to_index[key]
-
-    def search(self, key):
-        if key in self.key_to_index:
-            index = self.key_to_index[key]
-            value = self.heap[index].value
-            return f"1 {index} {value}"
-        return "0"
-
-    def min(self):
-        if self.heap:
-            min_node = self.heap[0]
-            return f"{min_node.key} 0 {min_node.value}"
-        return "error"
-
-    def extract(self):
-        if self.heap:
-            min_node = self.heap[0]
-            del self.key_to_index[min_node.key]
-            last_node = self.heap.pop()
-            if self.heap:
-                self.heap[0] = last_node
-                self.key_to_index[last_node.key] = 0
-                self._heapify_down(0)
-            return f"{min_node.key} {min_node.value}"
-        return "error"
-
-    def print_heap(self):
-        if self.heap:
-            levels = []
-            current_level = [0]
-            while current_level:
-                next_level = []
-                level_output = []
-                for index in current_level:
-                    if index < len(self.heap):
-                        node = self.heap[index]
-                        level_output.append(f"[{node.key} {node.value}]")
-                        left_child = 2 * index + 1
-                        right_child = 2 * index + 2
-                        next_level.extend([left_child, right_child])
-                    else:
-                        level_output.append("_")
-                        next_level.extend([None, None])
-                levels.append(" ".join(level_output))
-                current_level = [i for i in next_level if i is not None]
-            for level in levels:
-                print(level)
-        else:
-            print("_")
-
-    def _heapify_up(self, index):
-        while index > 0:
-            parent_index = (index - 1) // 2
-            if self.heap[parent_index].key > self.heap[index].key:
-                self.heap[parent_index], self.heap[index] = self.heap[index], self.heap[parent_index]
-                self.key_to_index[self.heap[parent_index].key] = parent_index
-                self.key_to_index[self.heap[index].key] = index
-                index = parent_index
-            else:
-                break
-
-    def _heapify_down(self, index):
+    def __sift_down(self, index):
+        n = len(self.__heap)
         while True:
-            left_child_index = 2 * index + 1
-            right_child_index = 2 * index + 2
+            left = 2 * index + 1
+            right = 2 * index + 2
             smallest = index
 
-            if left_child_index < len(self.heap) and self.heap[left_child_index].key < self.heap[smallest].key:
-                smallest = left_child_index
-
-            if right_child_index < len(self.heap) and self.heap[right_child_index].key < self.heap[smallest].key:
-                smallest = right_child_index
+            if left < n and self.__heap[left][0] < self.__heap[smallest][0]:
+                smallest = left
+            if right < n and self.__heap[right][0] < self.__heap[smallest][0]:
+                smallest = right
 
             if smallest != index:
-                self.heap[index], self.heap[smallest] = self.heap[smallest], self.heap[index]
-                self.key_to_index[self.heap[index].key] = index
-                self.key_to_index[self.heap[smallest].key] = smallest
+                self.__swap(index, smallest)
                 index = smallest
             else:
                 break
 
+    def add(self, key, value):
+        if key in self.__positions:
+            print("error")
+            return
+        self.__positions[key] = len(self.__heap)
+        self.__heap.append((key, value))
+        self.__sift_up(len(self.__heap) - 1)
 
-def parse_command(command, heap):
-    parts = command.split()
-    if parts[0] == 'add':
-        key, value = int(parts[1]), parts[2]
-        heap.add(key, value)
-    elif parts[0] == 'set':
-        key, value = int(parts[1]), parts[2]
-        heap.set(key, value)
-    elif parts[0] == 'delete':
-        key = int(parts[1])
-        heap.delete(key)
-    elif parts[0] == 'search':
-        key = int(parts[1])
-        result = heap.search(key)
-        print(result)
-    elif parts[0] == 'min':
-        result = heap.min()
-        print(result)
-    elif parts[0] == 'max':
-        result = heap.max()
-        print(result)
-    elif parts[0] == 'extract':
-        result = heap.extract()
-        print(result)
-    elif parts[0] == 'print':
-        heap.print_heap()
+    def set(self, key, value):
+        if key not in self.__positions:
+            print("error")
+            return
+        index = self.__positions[key]
+        self.__heap[index] = (key, value)
+        self.__sift_up(index)
+        self.__sift_down(index)
+
+    def delete(self, key):
+        if key not in self.__positions:
+            print("error")
+            return
+        index = self.__positions[key]
+        last_item = self.__heap.pop()
+        if index < len(self.__heap):
+            self.__heap[index] = last_item
+            self.__positions[last_item[0]] = index
+            self.__sift_up(index)
+            self.__sift_down(index)
+        del self.__positions[key]
+
+    def search(self, key):
+        if key in self.__positions:
+            index = self.__positions[key]
+            print(f"1 {index} {self.__heap[index][1]}")
+        else:
+            print("0")
+
+    def min(self):
+        if not self.__heap:
+            print("error")
+            return
+        key, value = self.__heap[0]
+        print(f"{key} 0 {value}")
+
+    def max(self):
+        if not self.__heap:
+            print("error")
+            return
+        # Чтобы искать максимум эфективно будем проходить только по листам
+        first_leaf = len(self.__heap) // 2
+        max_item = max(self.__heap[first_leaf:], key=lambda x: x[0])
+        index = self.__positions[max_item[0]]
+        print(f"{max_item[0]} {index} {max_item[1]}")
+
+    def extract(self):
+        if not self.__heap:
+            print("error")
+            return
+        root = self.__heap[0]
+        self.delete(root[0])
+        print(f"{root[0]} {root[1]}")
+
+    def print_heap(self):
+        # print("heap:", self.__heap)
+        # print("positions:", self.__positions)
+        if not self.__heap:
+            print("_")
+            return
+
+        print(f"[{self.__heap[0][0]} {self.__heap[0][1]}]")
+
+        it = iter(self.__heap)
+        next(it)  # Красиво пропускаем первый элемент
+
+        level_length = 2
+        count = 0
+        join_buffer_count = 0
+        line = []
+
+        for vertex in it:
+            join_buffer_count += 1
+            count += 1
+
+            parent_index = (self.__positions[vertex[0]] - 1) // 2
+            line.append(f"[{vertex[0]} {vertex[1]} {self.__heap[parent_index][0]}]")
+
+            if join_buffer_count == 1000:  # Самые быстрые принты на диком западе
+                print(" ".join(line), end=" ")
+                join_buffer_count = 0
+                line = []
+
+            if count == level_length:
+                print(" ".join(line))
+                join_buffer_count = 0
+                line = []
+                level_length *= 2
+                count = 0
+
+        if count != 0:
+            print(" ".join(line), end="")
+            print(" _" * (level_length - count)) # Тут не хочу с буффером извращаться
+
+
+def main():
+    min_heap = MinHeap()
+    command_patterns = [
+        re.compile(r'^add ([-+]?\d+) (\S*)$'),
+        re.compile(r'^set ([-+]?\d+) (\S*)$'),
+        re.compile(r'^delete ([-+]?\d+)$'),
+        re.compile(r'^search ([-+]?\d+)$'),
+        re.compile(r'^min$'),
+        re.compile(r'^max$'),
+        re.compile(r'^extract$'),
+        re.compile(r'^print$'),
+    ]
+
+    for line in sys.stdin:
+        if not line or line == "\n":
+            continue
+        for pattern in command_patterns:
+            match = pattern.match(line)
+            if match:
+                if line.startswith("add"):
+                    min_heap.add(int(match.group(1)), str(match.group(2)))
+                elif line.startswith("set"):
+                    min_heap.set(int(match.group(1)), str(match.group(2)))
+                elif line.startswith("delete"):
+                    min_heap.delete(int(match.group(1)))
+                elif line.startswith("search"):
+                    min_heap.search(int(match.group(1)))
+                elif line.startswith("min"):
+                    min_heap.min()
+                elif line.startswith("max"):
+                    min_heap.max()
+                elif line.startswith("extract"):
+                    min_heap.extract()
+                elif line.startswith("print"):
+                    min_heap.print_heap()
+                break
+        else:
+            print("error")
 
 
 if __name__ == "__main__":
-    heap = BinaryMinHeap()
-    while True:
-        try:
-            command = input()
-            if not command:
-                continue
-            parse_command(command, heap)
-        except EOFError:
-            break
+    main()
