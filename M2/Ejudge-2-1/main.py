@@ -17,19 +17,19 @@ class Node:
 
 class SplayTree:
     def __init__(self):
-        self._root = None
+        self.__root = None
 
     # Повороты можно объединть в один метод,
     # но это наплодит ненужные проверки и дополнительные переменные (а оно нам не надо)
     # Ну и как по мне, сплей в таком случае понятнее выглядит
-    def _rotate_left(self, x):
+    def __rotate_left(self, x):
         y = x.right
         x.right = y.left
         if y.left:
             y.left.parent = x
         y.parent = x.parent
         if x.parent is None:
-            self._root = y
+            self.__root = y
         elif x == x.parent.left:
             x.parent.left = y
         else:
@@ -37,14 +37,14 @@ class SplayTree:
         y.left = x
         x.parent = y
 
-    def _rotate_right(self, x):
+    def __rotate_right(self, x):
         y = x.left
         x.left = y.right
         if y.right:
             y.right.parent = x
         y.parent = x.parent
         if x.parent is None:
-            self._root = y
+            self.__root = y
         elif x == x.parent.right:
             x.parent.right = y
         else:
@@ -52,57 +52,57 @@ class SplayTree:
         y.right = x
         x.parent = y
 
-    def _splay(self, node):
+    def __splay(self, node):
         while node.parent:
             # Zig
             if node.parent.parent is None:
                 if node == node.parent.left:
-                    self._rotate_right(node.parent)
+                    self.__rotate_right(node.parent)
                 else:
-                    self._rotate_left(node.parent)
+                    self.__rotate_left(node.parent)
             # Zig-Zig
             elif node == node.parent.left and node.parent == node.parent.parent.left:
-                self._rotate_right(node.parent.parent)
-                self._rotate_right(node.parent)
+                self.__rotate_right(node.parent.parent)
+                self.__rotate_right(node.parent)
             elif node == node.parent.right and node.parent == node.parent.parent.right:
-                self._rotate_left(node.parent.parent)
-                self._rotate_left(node.parent)
+                self.__rotate_left(node.parent.parent)
+                self.__rotate_left(node.parent)
             # Zig-Zag
             elif node == node.parent.right and node.parent == node.parent.parent.left:
-                self._rotate_left(node.parent)
-                self._rotate_right(node.parent)
+                self.__rotate_left(node.parent)
+                self.__rotate_right(node.parent)
             elif node == node.parent.left and node.parent == node.parent.parent.right:
-                self._rotate_right(node.parent)
-                self._rotate_left(node.parent)
-        self._root = node
+                self.__rotate_right(node.parent)
+                self.__rotate_left(node.parent)
+        self.__root = node
 
     def add(self, key, value):
-        if not self._root:
-            self._root = Node(key, value)
+        if not self.__root:
+            self.__root = Node(key, value)
             return
-        node = self._root
+        node = self.__root
         while True:
             if key < node.key:
                 if node.left:
                     node = node.left
                 else:
                     node.left = Node(key, value, parent=node)
-                    self._splay(node.left)
+                    self.__splay(node.left)
                     break
             elif key > node.key:
                 if node.right:
                     node = node.right
                 else:
                     node.right = Node(key, value, parent=node)
-                    self._splay(node.right)
+                    self.__splay(node.right)
                     break
             else:
                 print("error")  # Ключ уже существует
-                self._splay(node)
+                self.__splay(node)
                 break
 
     def delete(self, key):
-        node_to_delete = self._search(key)  # Сплей применяется внутри поиска
+        node_to_delete = self.__search(key)  # Сплей применяется внутри поиска
         if not node_to_delete:
             print("error")
             return
@@ -114,91 +114,91 @@ class SplayTree:
             if node_to_delete.right:
                 right_subtree = node_to_delete.right
 
-                max_node = self._max(left_subtree)  # И тут тоже
+                max_node = self.__max(left_subtree)  # И тут тоже
 
                 max_node.right = right_subtree
                 right_subtree.parent = max_node
 
-                self._root = max_node
+                self.__root = max_node
             else:
-                self._root = left_subtree
+                self.__root = left_subtree
         else:
-            self._root = node_to_delete.right
-            if self._root:
-                self._root.parent = None
+            self.__root = node_to_delete.right
+            if self.__root:
+                self.__root.parent = None
 
-    def _search(self, key):
-        node = self._root
+    def __search(self, key):
+        node = self.__root
         while node:
             if key < node.key:
                 if node.left is None:
-                    self._splay(node)
+                    self.__splay(node)
                     break
                 node = node.left
             elif key > node.key:
                 if node.right is None:
-                    self._splay(node)
+                    self.__splay(node)
                     break
                 node = node.right
             else:
-                self._splay(node)
+                self.__splay(node)
                 return node
         return None
 
     def search(self, key):
-        node = self._search(key)
+        node = self.__search(key)
         if node:
-            print(f"1 {self._root.value}")
+            print(f"1 {self.__root.value}")
         else:
             print("0")
 
     def set(self, key, value):
-        node = self._search(key)
+        node = self.__search(key)
         if node:
-            self._root.value = value
+            self.__root.value = value
         else:
             print("error")
 
-    def _min(self, node):
+    def __min(self, node):
         while node.left is not None:
             node = node.left
-        self._splay(node)
+        self.__splay(node)
         return node
 
-    def _max(self, node):
+    def __max(self, node):
         while node.right is not None:
             node = node.right
-        self._splay(node)
+        self.__splay(node)
         return node
 
     def min(self):
-        if self._root:
-            min_node = self._min(self._root)
+        if self.__root:
+            min_node = self.__min(self.__root)
             print(f"{min_node.key} {min_node.value}")
         else:
             print("error")
 
     def max(self):
-        if self._root:
-            max_node = self._max(self._root)
+        if self.__root:
+            max_node = self.__max(self.__root)
             print(f"{max_node.key} {max_node.value}")
         else:
             print("error")
 
     # @profile
-    def _print_tree(self):
-        if not self._root:
+    def print_tree(self):
+        if not self.__root:
             print("_")
             return
 
-        print(f"[{self._root.key} {self._root.value}]")
+        print(f"[{self.__root.key} {self.__root.value}]")
 
         level_length = 2
         count = 0
         join_buffer_count = 0
         queue = deque()
-        queue.appendleft(self._root.left)
-        queue.appendleft(self._root.right)
+        queue.appendleft(self.__root.left)
+        queue.appendleft(self.__root.right)
         line = []
 
         while True:
@@ -298,9 +298,6 @@ class SplayTree:
     #         print(" ".join(line))
     #
     #         current_level_nodes = next_level_nodes
-
-    def print_tree(self):
-        self._print_tree()
 
 
 def main():
