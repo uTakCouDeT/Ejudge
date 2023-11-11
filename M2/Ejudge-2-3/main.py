@@ -35,11 +35,15 @@ class Trie:
         self.__get_words_helper(self.__root, "", words)
         return words
 
-    def __get_words_helper(self, node, current_word, words):
-        if node.is_end_of_word:
-            words.append(current_word)
-        for char, next_node in node.children.items():
-            self.__get_words_helper(next_node, current_word + char, words)
+    @staticmethod
+    def __get_words_helper(node, current_word, words):
+        stack = [(node, current_word)]
+        while stack:
+            current_node, word = stack.pop()
+            if current_node.is_end_of_word:
+                words.append(word)
+            for char, next_node in current_node.children.items():
+                stack.append((next_node, word + char))
 
 
 class AutoCorrect:
@@ -68,9 +72,9 @@ class AutoCorrect:
 
     @staticmethod
     def __dam_lev_distance(s1, s2):
-        """
-        Рассчитывает расстояние Дамерау-Левенштейна между двумя строками.
-        """
+        if abs(len(s1) - len(s2)) > 1:
+            return 2  # Разница в длине больше 1, расстояние точно > 1
+
         len_s1 = len(s1)
         len_s2 = len(s2)
 
