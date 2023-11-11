@@ -85,13 +85,19 @@ class RadixTree:
         return node.is_word
 
     def get_corrections(self, word):
+        word = word.lower()
         stack = [(self.__root, "")]
         corrections = []
+        word_len = len(word)
 
         while stack:
             node, prefix = stack.pop()
-            if node.is_word:
-                if self.__is_dam_lev_distance_one(word.lower(), prefix):
+
+            if len(prefix) > word_len + 1:
+                continue
+
+            if node.is_word and len(prefix) >= word_len - 1:
+                if self.__is_dam_lev_distance_one(word, prefix):
                     corrections.append(prefix)
 
             for child_suffix, child_node in node.children.items():
@@ -102,9 +108,6 @@ class RadixTree:
     @staticmethod
     def __is_dam_lev_distance_one(s1, s2):
         len_s1, len_s2 = len(s1), len(s2)
-
-        if abs(len_s1 - len_s2) > 1:
-            return False
 
         prev_prev_row = None
         prev_row = list(range(len_s2 + 1))
