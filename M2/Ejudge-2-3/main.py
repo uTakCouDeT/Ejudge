@@ -50,41 +50,89 @@ class RadixTree:
     def __init__(self):
         self.__root = Node()
 
+    # def print_tree(self, node=None, prefix=""):
+    #     if node is None:
+    #         node = self.__root
+    #
+    #     for child_suffix, child_node in node.children.items():
+    #         current_prefix = prefix + child_suffix
+    #         print(f"{' ' * len(prefix)}|- {child_suffix} {'(word)' if child_node.is_word else ''}")
+    #         self.print_tree(child_node, current_prefix)
+
     def add(self, word):
         """
             Сложность: O(m), где m - длина добавляемого слова.
-            Пояснение: Для каждого символа слова алгоритм проверяет наличие
-            соответствующего дочернего узла и создает новый узел, если он отсутствует.
-            Поскольку каждый символ в слове обрабатывается один раз, сложность линейно зависит от длины слова.
+            Пояснение: При добавлении слова в префиксное дерево, алгоритму необходимо пройти по пути,
+            соответствующему каждому символу слова. В сжатом префиксном дереве, каждый узел может
+            представлять собой целый префикс, что уменьшает количество необходимых шагов по сравнению
+            с обычным префиксным деревом. Следовательно, количество операций,
+            необходимых для добавления слова, линейно зависит от его длины.
+            В случаях, когда необходимо разделить узел, дополнительные операции могут немного увеличить затраты времени
         """
         word = word.lower()
         node = self.__root
         i = 0
         while i < len(word):
             match = False
-            for child in node.children:
-                if word[i:].startswith(child):
+            for child in node.children.keys():
+                common_prefix_length = self.__common_prefix_length(word[i:], child)
+                if common_prefix_length > 0:
                     match = True
-                    node = node.children[child]
-                    i += len(child)
-                    break
+                    # Если общий префикс совпадает полностью с существующим узлом
+                    if common_prefix_length == len(child):
+                        node = node.children[child]
+                        i += len(child)
+                        break
+                    else:
+                        # Разделяем существующий узел
+                        existing_node = node.children[child]
+                        new_child = child[:common_prefix_length]
+                        new_node = Node()
+
+                        # Обновляем детей для нового узла и старого узла
+                        node.children[new_child] = new_node
+                        new_node.children[child[common_prefix_length:]] = existing_node
+                        del node.children[child]
+
+                        node = new_node
+                        i += common_prefix_length
+                        break
             if not match:
                 new_node = Node()
                 new_node.is_word = True
                 node.children[word[i:]] = new_node
                 break
+            elif i == len(word):
+                node.is_word = True
+
+    @staticmethod
+    def __common_prefix_length(s1, s2):
+        """"
+            Сложность: O(min(m, n)), где m и n - длины сравниваемых строк.
+            Пояснение: Этот метод определяет длину общего префикса двух строк.
+            Он проходит по обеим строкам до первого несовпадения или до конца самой короткой строки.
+            В худшем случае количество итераций равно длине более короткой строки.
+        """
+        min_length = min(len(s1), len(s2))
+        for i in range(min_length):
+            if s1[i] != s2[i]:
+                return i
+        return min_length
 
     def search(self, word):
         """
             Сложность: O(m), где m - длина искомого слова.
-            Пояснение: Аналогично добавлению
+            Пояснение: Поиск слова в сжатом префиксном дереве также требует прохождения по пути,
+            соответствующему каждому символу слова. Благодаря сжатию, количество шагов уменьшается,
+            так как каждый узел может представлять целый префикс, а не отдельный символ.
+            Таким образом, сложность поиска линейно зависит от длины слова.
         """
         word = word.lower()
         node = self.__root
         i = 0
         while i < len(word):
             found = False
-            for child in node.children:
+            for child in node.children.keys():
                 if word[i:].startswith(child):
                     found = True
                     node = node.children[child]
@@ -221,6 +269,7 @@ class AutoCorrect:
 
     def add_word(self, word):
         self.__radix.add(word)
+        # self.__radix.print_tree()
 
     def correct_word(self, word):
         if self.__radix.search(word):
