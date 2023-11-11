@@ -1,3 +1,6 @@
+import sys
+
+
 class Node:
     def __init__(self):
         self.children = {}
@@ -7,10 +10,10 @@ class Node:
 
 class Trie:
     def __init__(self):
-        self.root = Node()
+        self.__root = Node()
 
     def add(self, word, value):
-        node = self.root
+        node = self.__root
         for char in word.lower():
             if char not in node.children:
                 node.children[char] = Node()
@@ -19,7 +22,7 @@ class Trie:
         node.value = value
 
     def search(self, word):
-        node = self.root
+        node = self.__root
         for char in word.lower():
             if char not in node.children:
                 return None
@@ -29,30 +32,30 @@ class Trie:
     def get_words(self):
         # Метод для получения всех слов в Trie
         words = []
-        self._get_words_helper(self.root, "", words)
+        self.__get_words_helper(self.__root, "", words)
         return words
 
-    def _get_words_helper(self, node, current_word, words):
+    def __get_words_helper(self, node, current_word, words):
         if node.is_end_of_word:
             words.append(current_word)
         for char, next_node in node.children.items():
-            self._get_words_helper(next_node, current_word + char, words)
+            self.__get_words_helper(next_node, current_word + char, words)
 
 
 class AutoCorrect:
     def __init__(self):
-        self.trie = Trie()
+        self.__trie = Trie()
 
     def add_word(self, word, value=None):
-        self.trie.add(word, value)
+        self.__trie.add(word, value)
 
     def correct_word(self, word):
         lower_word = word.lower()
-        if self.trie.search(lower_word):
+        if self.__trie.search(lower_word):
             return f"{word} - ok"
 
         corrections = []
-        for dict_word in self.trie.get_words():
+        for dict_word in self.__trie.get_words():
             if abs(len(lower_word) - len(dict_word)) <= 1:
                 if dam_lev_distance(lower_word, dict_word) == 1:
                     corrections.append(dict_word)
@@ -93,18 +96,15 @@ def dam_lev_distance(s1, s2):
 
 def main():
     ac = AutoCorrect()
-    n = int(input().strip())
-    for _ in range(n):
-        word = input().strip().lower()
-        ac.add_word(word)
 
-    try:
-        while True:
-            word = input()
-            if word:
-                print(ac.correct_word(word))
-    except EOFError:
-        pass
+    n = int(next(sys.stdin).strip())
+    for _ in range(n):
+        ac.add_word(next(sys.stdin).rstrip('\n'))
+
+    for line in sys.stdin:
+        line = line.rstrip('\n')
+        if line:
+            print(ac.correct_word(line))
 
 
 if __name__ == "__main__":
