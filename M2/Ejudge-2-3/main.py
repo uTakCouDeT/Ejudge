@@ -1,72 +1,111 @@
-from collections import defaultdict
-
-
-class TrieNode:
+class Node:
     def __init__(self):
-        self.children = defaultdict(TrieNode)
-        self.word = None
+        self.children = {}
+        self.is_end_of_word = False
+        self.value = None
 
 
-class SpellingCorrector:
+class Trie:
     def __init__(self):
-        self.root = TrieNode()
-        self.corrections = {}
+        self.root = Node()
 
-    def insert_word(self, word):
+    def add(self, word, value):
         node = self.root
-        for char in word:
+        for char in word.lower():
+            if char not in node.children:
+                node.children[char] = Node()
             node = node.children[char]
-        node.word = word
+        node.is_end_of_word = True
+        node.value = value
 
-    def build_dictionary(self, dictionary):
-        for word in dictionary:
-            self.insert_word(word.lower())  # Приводим слова к нижнему регистру
+    def search(self, word):
+        node = self.root
+        for char in word.lower():
+            if char not in node.children:
+                return None
+            node = node.children[char]
+        return node if node.is_end_of_word else None
 
-    def get_corrections(self, word):
-        self.corrections = {}
-        self.find_corrections(self.root, word, '', 0)
-        return self.corrections
+    def get_words(self):
+        # Метод для получения всех слов в Trie
+        words = []
+        self._get_words_helper(self.root, "", words)
+        return words
 
-    def find_corrections(self, node, word, current_word, errors):
-        if errors > 1:
-            return
+    def _get_words_helper(self, node, current_word, words):
+        if node.is_end_of_word:
+            words.append(current_word)
+        for char, next_node in node.children.items():
+            self._get_words_helper(next_node, current_word + char, words)
 
-        if not word:
-            if node.word:
-                self.corrections[current_word] = node.word
-            if errors == 1:
-                for child_char, child_node in node.children.items():
-                    self.find_corrections(child_node, word, current_word + child_char, errors + 1)
+
+class AutoCorrect:
+    def __init__(self):
+        self.trie = Trie()
+
+    def add_word(self, word, value=None):
+        self.trie.add(word, value)
+
+    def correct_word(self, word):
+        lower_word = word.lower()
+        if self.trie.search(lower_word):
+            return f"{word} - ok"
+
+        corrections = []
+        for dict_word in self.trie.get_words():
+            if abs(len(lower_word) - len(dict_word)) <= 1:
+                if dam_lev_distance(lower_word, dict_word) == 1:
+                    corrections.append(dict_word)
+
+        if corrections:
+            corrections.sort()
+            return f"{word} -> {', '.join(corrections)}"
         else:
-            char = word[0]
-            for child_char, child_node in node.children.items():
-                if char == child_char:
-                    self.find_corrections(child_node, word[1:], current_word + char, errors)
-                else:
-                    self.find_corrections(child_node, word[1:], current_word + child_char, errors + 1)
+            return f"{word} -?"
+
+
+def dam_lev_distance(s1, s2):
+    """
+    Рассчитывает расстояние Дамерау-Левенштейна между двумя строками.
+    """
+    len_s1 = len(s1)
+    len_s2 = len(s2)
+
+    d = [[0 for _ in range(len_s2 + 1)] for _ in range(len_s1 + 1)]
+
+    for i in range(len_s1 + 1):
+        d[i][0] = i
+    for j in range(len_s2 + 1):
+        d[0][j] = j
+
+    for i in range(1, len_s1 + 1):
+        for j in range(1, len_s2 + 1):
+            cost = 0 if s1[i - 1] == s2[j - 1] else 1
+            d[i][j] = min(d[i - 1][j] + 1,  # удаление
+                          d[i][j - 1] + 1,  # вставка
+                          d[i - 1][j - 1] + cost)  # замена
+
+            if i > 1 and j > 1 and s1[i - 1] == s2[j - 2] and s1[i - 2] == s2[j - 1]:
+                d[i][j] = min(d[i][j], d[i - 2][j - 2] + cost)  # транспозиция
+
+    return d[len_s1][len_s2]
+
+
+def main():
+    ac = AutoCorrect()
+    n = int(input().strip())
+    for _ in range(n):
+        word = input().strip().lower()
+        ac.add_word(word)
+
+    try:
+        while True:
+            word = input()
+            if word:
+                print(ac.correct_word(word))
+    except EOFError:
+        pass
 
 
 if __name__ == "__main__":
-    n = int(input())
-    dictionary = [input().strip().lower() for _ in range(n)]
-
-    corrector = SpellingCorrector()
-    corrector.build_dictionary(dictionary)
-
-    while True:
-        try:
-            word = input().strip().lower()
-            if not word:
-                continue
-
-            if word in dictionary:
-                print(f"{word} - ok")
-            else:
-                corrections = corrector.get_corrections(word)
-                if not corrections:
-                    print(f"{word} -?")
-                else:
-                    sorted_corrections = sorted(corrections.values())
-                    print(f"{word} -> {', '.join(sorted_corrections)}")
-        except EOFError:
-            break
+    main()
