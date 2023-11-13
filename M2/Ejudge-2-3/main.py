@@ -321,18 +321,6 @@ def main():
             corrections = ac.get_corrections(line)
             print_corrections(line, is_correct, corrections)
 
-# class AutoCorrect:
-#     def __init__(self):
-#         self.__radix = RadixTree()
-#
-#     def add_word(self, word):
-#         self.__radix.add(word)
-#         # self.__radix.print_tree()
-#
-#     def is_correct(self, word):
-#         return self.__radix.search(word)
-#
-#     def get_corrections(self, word):
-#         return self.__radix.get_corrections(word)
+
 if __name__ == "__main__":
     main()
