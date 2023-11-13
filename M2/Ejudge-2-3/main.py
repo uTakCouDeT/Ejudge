@@ -228,9 +228,16 @@ class RadixTree:
             Чаще всего по первым символам уже становится понятно, что расстояние больше чем 1
             Но предположим что это происходит в половине случаев => сложность в среднем будет O(n * m / 2)
 
-            для второй буквы вероятность такая же, а уж чтобы они одновременно совпали вероятность 0,001479172
-            Это означает что 99,8520828% оставшихся случаев завершаются на второй строке матрицы.
-            В таком случае вообще можно считать что сложность данного алгоритма линейно зависит от длины слова s2.
+            P.P.P.S хотя в реальности вероятность того, что в двух случайно взятых словах
+            (только из английского алфавита) первая буква совпадёт равна 0.03846 (остальные случаи - 96,154%)
+            это порождает ситуацию в которой минимальное значение в строке становится равно 1
+            и каждая неисправимая ошибка приводит к завершению алгоритма. Вероятность что вторые
+            буквы совпадут 0.03846 (+ вероятность что не совпадут, но их можно исправить транспозицией 0,001479172).
+            В сумме выходит 0,039939172 (обратная ситуация - 96,00%). Вероятность, что первая буква не совпала (около 96%)
+            и вместе с этим не совпала вторая буква (тоже около 96%) получается около 92% тк эти ситуации в общем случае
+            независимы (вклад транспозиции на порядок меньше). Даже при такой грубой оценке вероятность что алгоритм
+            завершится на второй же букве равняется приблизительно 92%. При этом с каждой буквой вероятность раннего
+            завершения будет увеличиваться. По этому в среднем данная функция достаточно хорошо оптимизирована.
 
             Так же транспозиция в данном алгоритме учитывается только там где это необходимо,
             и в большинстве случаев этот этап пропускается. (хотя это скорее микрооптимизация)
@@ -242,6 +249,7 @@ class RadixTree:
         prev_prev_row = None
         prev_row = list(range(len_s2 + 1))
         current_row = [0] * (len_s2 + 1)
+        # print(prev_row)
 
         for i in range(1, len_s1 + 1):
             current_row[0] = i
@@ -251,8 +259,9 @@ class RadixTree:
 
                 if prev_prev_row and s1[i - 1] == s2[j - 2] and s1[i - 2] == s2[j - 1]:
                     current_row[j] = min(current_row[j], prev_prev_row[j - 2] + 1)
+            # print(current_row)
 
-            # Останавливаем если в матрицпе все расстояния больше 1
+            # Останавливаем если в матрице все расстояния больше 1
             # тк в следующих строчках оно меньше стать не может
             if min(current_row) > 1:
                 return False
@@ -270,29 +279,6 @@ class RadixTree:
 
         return True if prev_row[len_s2] == 1 else False
 
-        # @staticmethod
-        # def __dam_lev_distance(s1, s2):
-        #     len_s1, len_s2 = len(s1), len(s2)
-        #
-        #     d = [[0] * (len_s2 + 1) for _ in range(len_s1 + 1)]
-        #
-        #     for i in range(len_s1 + 1):
-        #         d[i][0] = i
-        #     for j in range(len_s2 + 1):
-        #         d[0][j] = j
-        #
-        #     for i in range(1, len_s1 + 1):
-        #         for j in range(1, len_s2 + 1):
-        #             cost = 0 if s1[i - 1] == s2[j - 1] else 1
-        #             d[i][j] = min(d[i - 1][j] + 1,  # удаление
-        #                           d[i][j - 1] + 1,  # вставка
-        #                           d[i - 1][j - 1] + cost)  # замена
-        #
-        #             if i > 1 and j > 1 and s1[i - 1] == s2[j - 2] and s1[i - 2] == s2[j - 1]:
-        #                 d[i][j] = min(d[i][j], d[i - 2][j - 2] + cost)  # транспозиция
-        #
-        #     return d[len_s1][len_s2]
-
 
 class AutoCorrect:
     def __init__(self):
@@ -302,17 +288,23 @@ class AutoCorrect:
         self.__radix.add(word)
         # self.__radix.print_tree()
 
-    def correct_word(self, word):
-        if self.__radix.search(word):
-            return f"{word} - ok"
+    def is_correct(self, word):
+        return self.__radix.search(word)
 
-        corrections = self.__radix.get_corrections(word)
+    def get_corrections(self, word):
+        return self.__radix.get_corrections(word)
 
-        if corrections:
-            corrections.sort()
-            return f"{word} -> {', '.join(corrections)}"
-        else:
-            return f"{word} -?"
+
+def print_corrections(word, is_correct, corrections, output_stream=sys.stdout):
+    if is_correct:
+        print(f"{word} - ok", file=output_stream)
+        return
+
+    if corrections:
+        corrections.sort()
+        print(f"{word} -> {', '.join(corrections)}", file=output_stream)
+    else:
+        print(f"{word} -?", file=output_stream)
 
 
 def main():
@@ -325,8 +317,22 @@ def main():
     for line in sys.stdin:
         line = line.rstrip('\n')
         if line:
-            print(ac.correct_word(line))
+            is_correct = ac.is_correct(line)
+            corrections = ac.get_corrections(line)
+            print_corrections(line, is_correct, corrections)
 
-
+# class AutoCorrect:
+#     def __init__(self):
+#         self.__radix = RadixTree()
+#
+#     def add_word(self, word):
+#         self.__radix.add(word)
+#         # self.__radix.print_tree()
+#
+#     def is_correct(self, word):
+#         return self.__radix.search(word)
+#
+#     def get_corrections(self, word):
+#         return self.__radix.get_corrections(word)
 if __name__ == "__main__":
     main()
