@@ -136,7 +136,7 @@ class MinHeap:
 
         if count != 0:
             print(" ".join(line), end="")
-            print(" _" * (level_length - count)) # Тут не хочу с буффером извращаться
+            print(" _" * (level_length - count))  # Тут не хочу с буфером извращаться
 
 
 def main():
