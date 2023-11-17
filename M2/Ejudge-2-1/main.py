@@ -1,11 +1,16 @@
-# В последнем "коммите" обновил инкапсуляцию
-# В питоне она конечно чисто символическая, но пусть лучше всё будет в "name mangling" для большей приватности
+# Добавил вывод "error" через исключения
+# Вместо принтов в нодах теперь возвращается нода
+# Ну и вывод в пользовательский поток
+
 import re
 import sys
 from collections import deque
 
 
 # from memory_profiler import profile
+
+class SplayTreeError(Exception):
+    pass
 
 
 class Node:
@@ -14,16 +19,13 @@ class Node:
         self.value = value
         self.left = None
         self.right = None
-        self.parent = parent  # Без ссылки на родителя тяжко
+        self.parent = parent
 
 
 class SplayTree:
     def __init__(self):
         self.__root = None
 
-    # Повороты можно объединть в один метод,
-    # но это наплодит ненужные проверки и дополнительные переменные (а оно нам не надо)
-    # Ну и как по мне, сплей в таком случае понятнее выглядит
     def __rotate_left(self, x):
         y = x.right
         x.right = y.left
@@ -99,15 +101,13 @@ class SplayTree:
                     self.__splay(node.right)
                     break
             else:
-                print("error")  # Ключ уже существует
                 self.__splay(node)
-                break
+                raise SplayTreeError("error")
 
     def delete(self, key):
-        node_to_delete = self.__search(key)  # Сплей применяется внутри поиска
+        node_to_delete = self.__search(key)
         if not node_to_delete:
-            print("error")
-            return
+            raise SplayTreeError("error")
 
         if node_to_delete.left:
             left_subtree = node_to_delete.left
@@ -116,7 +116,7 @@ class SplayTree:
             if node_to_delete.right:
                 right_subtree = node_to_delete.right
 
-                max_node = self.__max(left_subtree)  # И тут тоже
+                max_node = self.__max(left_subtree)
 
                 max_node.right = right_subtree
                 right_subtree.parent = max_node
@@ -150,16 +150,16 @@ class SplayTree:
     def search(self, key):
         node = self.__search(key)
         if node:
-            print(f"1 {self.__root.value}")
-        else:
-            print("0")
+            return self.__root  # Хотел возвращать только значение, но исходя из требуемого функционала для min/max
+        else:                   # Скорее всего предполагается что тут тоже нужно возвращать ноду
+            return None
 
     def set(self, key, value):
         node = self.__search(key)
         if node:
             self.__root.value = value
         else:
-            print("error")
+            raise SplayTreeError("error")
 
     def __min(self, node):
         while node.left is not None:
@@ -176,24 +176,22 @@ class SplayTree:
     def min(self):
         if self.__root:
             min_node = self.__min(self.__root)
-            print(f"{min_node.key} {min_node.value}")
-        else:
-            print("error")
+            return min_node
+        raise SplayTreeError("error")
 
     def max(self):
         if self.__root:
             max_node = self.__max(self.__root)
-            print(f"{max_node.key} {max_node.value}")
-        else:
-            print("error")
+            return max_node
+        raise SplayTreeError("error")
 
     # @profile
-    def print_tree(self):
+    def print_tree(self, output_stream=sys.stdout):
         if not self.__root:
-            print("_")
+            print("_", file=output_stream)
             return
 
-        print(f"[{self.__root.key} {self.__root.value}]")
+        print(f"[{self.__root.key} {self.__root.value}]", file=output_stream)
 
         level_length = 2
         count = 0
@@ -216,18 +214,13 @@ class SplayTree:
                 queue.appendleft(None)
                 queue.appendleft(None)
 
-            # выводить через print("...", end=" ") каждый элемент долго
-            # а через " ".join(line) весь слой дорого (хранить массив на 2^24 элементов в 12 тесте не круто)
-            # по этому, чтобы, как говорится, и рыбку съесть и тесты пройти, добавим буффер
-            # Вершины выводятся небольшими пакетами и после вывода удаляются из памяти
-            # Работает быстро, памяти жрёт мало. Красота.
-            if join_buffer_count == 1000:                  # 1000 кстати для скорости вполне достаточно
-                print(" ".join(line), end=" ")        # Можно его вообще изменять динамически в зависимости от слоя
-                join_buffer_count = 0                 # Но я пожалуй лучше пойду остальные задачи доделывать
+            if join_buffer_count == 1000:
+                print(" ".join(line), end=" ", file=output_stream)
+                join_buffer_count = 0
                 line = []
 
             if count == level_length:
-                print(" ".join(line))
+                print(" ".join(line), file=output_stream)
                 join_buffer_count = 0
                 line = []
                 level_length *= 2
@@ -235,74 +228,9 @@ class SplayTree:
                 if not any(queue):
                     break
 
-    #                   ^
-    #                   |       вторая ступень эволюции
-    #                   |
-
-    # def _print_tree(self):
-    #     if not self._root:
-    #         print("_")
-    #         return
-    #
-    #     print(f"[{self._root.key} {self._root.value}]")
-    #
-    #     level_length = 2
-    #     count = 0
-    #     queue = deque()
-    #     queue.appendleft(self._root.left)
-    #     queue.appendleft(self._root.right)
-    #     line = []
-    #
-    #     while True:
-    #         node = queue.pop()
-    #         count += 1
-    #         if node:
-    #             line.append(f"[{node.key} {node.value} {node.parent.key}]")
-    #             queue.appendleft(node.left)
-    #             queue.appendleft(node.right)
-    #         else:
-    #             line.append("_")
-    #             queue.appendleft(None)
-    #             queue.appendleft(None)
-    #
-    #         if count == level_length:
-    #             print(" ".join(line))
-    #             level_length *= 2
-    #             count = 0
-    #             line = []
-    #             if not any(queue):
-    #                 break
-
-    #                   ^
-    #                   |       первая ступень эволюции
-    #                   |
-
-    # def _print_tree(self):
-    #     if not self._root:
-    #         print("_")
-    #         return
-    #
-    #     print(f"[{self._root.key} {self._root.value}]")
-    #     current_level_nodes = [self._root.left, self._root.right]
-    #     while any(current_level_nodes):
-    #         next_level_nodes = []
-    #         line = []
-    #
-    #         for node in current_level_nodes:
-    #             if node:
-    #                 line.append(f"[{node.key} {node.value} {node.parent.key}]")
-    #                 next_level_nodes.append(node.left)
-    #                 next_level_nodes.append(node.right)
-    #             else:
-    #                 line.append("_")
-    #                 next_level_nodes.append(None)
-    #                 next_level_nodes.append(None)
-    #         print(" ".join(line))
-    #
-    #         current_level_nodes = next_level_nodes
-
 
 def main():
+    output_stream = sys.stdout
     splay_tree = SplayTree()
     command_patterns = [
         re.compile(r'^add ([-+]?\d+) (\S*)$'),
@@ -318,26 +246,35 @@ def main():
     for line in sys.stdin:
         if not line or line == "\n":
             continue
-        for pattern in command_patterns:
-            match = pattern.match(line)
-            if match:
-                if line.startswith("add"):
-                    splay_tree.add(int(match.group(1)), str(match.group(2)))
-                elif line.startswith("set"):
-                    splay_tree.set(int(match.group(1)), str(match.group(2)))
-                elif line.startswith("delete"):
-                    splay_tree.delete(int(match.group(1)))
-                elif line.startswith("search"):
-                    splay_tree.search(int(match.group(1)))
-                elif line.startswith("min"):
-                    splay_tree.min()
-                elif line.startswith("max"):
-                    splay_tree.max()
-                elif line.startswith("print"):
-                    splay_tree.print_tree()
-                break
-        else:
-            print("error")
+        try:
+            for pattern in command_patterns:
+                match = pattern.match(line)
+                if match:
+                    if line.startswith("add"):
+                        splay_tree.add(int(match.group(1)), str(match.group(2)))
+                    elif line.startswith("set"):
+                        splay_tree.set(int(match.group(1)), str(match.group(2)))
+                    elif line.startswith("delete"):
+                        splay_tree.delete(int(match.group(1)))
+                    elif line.startswith("search"):
+                        node = splay_tree.search(int(match.group(1)))
+                        if node:
+                            print(f"1 {node.value}", file=output_stream)
+                        else:
+                            print("0", file=output_stream)
+                    elif line.startswith("min"):
+                        node = splay_tree.min()
+                        print(node.key, node.value, file=output_stream)
+                    elif line.startswith("max"):
+                        node = splay_tree.max()
+                        print(node.key, node.value, file=output_stream)
+                    elif line.startswith("print"):
+                        splay_tree.print_tree(output_stream=output_stream)
+                    break
+            else:
+                print("error", file=output_stream)  # Проверка корректности ввода это логика независимая от SplayTree
+        except SplayTreeError as ex:
+            print(ex, file=output_stream)
     # except KeyboardInterrupt:
     #     return 0
 
