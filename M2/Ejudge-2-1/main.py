@@ -102,12 +102,12 @@ class SplayTree:
                     break
             else:
                 self.__splay(node)
-                raise SplayTreeError("error")
+                raise SplayTreeError("Element with this key already exists")
 
     def delete(self, key):
         node_to_delete = self.__search(key)
         if not node_to_delete:
-            raise SplayTreeError("error")
+            raise SplayTreeError("Element with this key was not found")
 
         if node_to_delete.left:
             left_subtree = node_to_delete.left
@@ -159,7 +159,7 @@ class SplayTree:
         if node:
             self.__root.value = value
         else:
-            raise SplayTreeError("error")
+            raise SplayTreeError("Element with this key was not found")
 
     def __min(self, node):
         while node.left is not None:
@@ -177,13 +177,13 @@ class SplayTree:
         if self.__root:
             min_node = self.__min(self.__root)
             return min_node
-        raise SplayTreeError("error")
+        raise SplayTreeError("Splay tree is empty")
 
     def max(self):
         if self.__root:
             max_node = self.__max(self.__root)
             return max_node
-        raise SplayTreeError("error")
+        raise SplayTreeError("Splay tree is empty")
 
     # @profile
     def print_tree(self, output_stream=sys.stdout):
@@ -272,9 +272,10 @@ def main():
                         splay_tree.print_tree(output_stream=output_stream)
                     break
             else:
-                print("error", file=output_stream)  # Проверка корректности ввода это логика независимая от SplayTree
+                print("error", file=output_stream)
         except SplayTreeError as ex:
-            print(ex, file=output_stream)
+            # print(f"Error: {ex}", file=output_stream)
+            print("error", file=output_stream)  # Чтобы реализация ошибок не была заточена под вывод
     # except KeyboardInterrupt:
     #     return 0
 
