@@ -19,7 +19,7 @@ class Node:
 class MinHeap:
     def __init__(self):
         self.__heap = []
-        self.__positions = {}  # хеш-таблица для хранения позиций ключей в куче
+        self.__positions = {}
 
     def __swap(self, i, j):
         self.__positions[self.__heap[i].key], self.__positions[self.__heap[j].key] = j, i
