@@ -1,5 +1,5 @@
 # Сделал вывод "error" в методах кучи через исключения
-# Вместо принтов в методах search, min, max, extract теперь возвращается <?>
+# Вместо принтов в методах search, min, max, extract теперь возвращается нода
 # Ну и вывод кучи в пользовательский поток
 
 import re
@@ -78,34 +78,35 @@ class MinHeap:
             self.__sift_down(index)
         del self.__positions[key]
 
+    def get_index(self, key):
+        if key in self.__positions:
+            return self.__positions[key]
+        return None
+
     def search(self, key):
         if key in self.__positions:
             index = self.__positions[key]
             node = self.__heap[index]
-            print(f"1 {index} {node.value}")
-        else:
-            print("0")
+            return node
+        return None
 
     def min(self):
         if not self.__heap:
             raise MinHeapError("Heap is empty")
-        min_node = self.__heap[0]
-        print(f"{min_node.key} 0 {min_node.value}")
+        return self.__heap[0]
 
     def max(self):
         if not self.__heap:
             raise MinHeapError("Heap is empty")
         first_leaf = len(self.__heap) // 2
-        max_node = max(self.__heap[first_leaf:], key=lambda x: x.key)
-        index = self.__positions[max_node.key]
-        print(f"{max_node.key} {index} {max_node.value}")
+        return max(self.__heap[first_leaf:], key=lambda x: x.key)
 
     def extract(self):
         if not self.__heap:
             raise MinHeapError("Heap is empty")
         root = self.__heap[0]
         self.delete(root.key)
-        print(f"{root.key} {root.value}")
+        return root
 
     def print_heap(self, output_stream=sys.stdout):
         if not self.__heap:
@@ -174,13 +175,22 @@ def main():
                     elif line.startswith("delete"):
                         min_heap.delete(int(match.group(1)))
                     elif line.startswith("search"):
-                        min_heap.search(int(match.group(1)))
+                        node = min_heap.search(int(match.group(1)))
+                        if node:
+                            index = min_heap.get_index(node.key)
+                            print(f"1 {index} {node.value}", file=output_stream)
+                        else:
+                            print("0", file=output_stream)
                     elif line.startswith("min"):
-                        min_heap.min()
+                        min_node = min_heap.min()
+                        print(f"{min_node.key} 0 {min_node.value}", file=output_stream)
                     elif line.startswith("max"):
-                        min_heap.max()
+                        max_node = min_heap.max()
+                        index = min_heap.get_index(max_node.key)
+                        print(f"{max_node.key} {index} {max_node.value}", file=output_stream)
                     elif line.startswith("extract"):
-                        min_heap.extract()
+                        node = min_heap.extract()
+                        print(f"{node.key} {node.value}", file=output_stream)
                     elif line.startswith("print"):
                         min_heap.print_heap(output_stream=output_stream)
                     break
