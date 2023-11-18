@@ -10,18 +10,24 @@ class MinHeapError(Exception):
     pass
 
 
+class Node:
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
+
+
 class MinHeap:
     def __init__(self):
         self.__heap = []
         self.__positions = {}  # хеш-таблица для хранения позиций ключей в куче
 
     def __swap(self, i, j):
-        self.__positions[self.__heap[i][0]], self.__positions[self.__heap[j][0]] = j, i
+        self.__positions[self.__heap[i].key], self.__positions[self.__heap[j].key] = j, i
         self.__heap[i], self.__heap[j] = self.__heap[j], self.__heap[i]
 
     def __sift_up(self, index):
         parent = (index - 1) // 2
-        while index > 0 and self.__heap[index][0] < self.__heap[parent][0]:
+        while index > 0 and self.__heap[index].key < self.__heap[parent].key:
             self.__swap(index, parent)
             index = parent
             parent = (index - 1) // 2
@@ -33,9 +39,9 @@ class MinHeap:
             right = 2 * index + 2
             smallest = index
 
-            if left < n and self.__heap[left][0] < self.__heap[smallest][0]:
+            if left < n and self.__heap[left].key < self.__heap[smallest].key:
                 smallest = left
-            if right < n and self.__heap[right][0] < self.__heap[smallest][0]:
+            if right < n and self.__heap[right].key < self.__heap[smallest].key:
                 smallest = right
 
             if smallest != index:
@@ -47,15 +53,16 @@ class MinHeap:
     def add(self, key, value):
         if key in self.__positions:
             raise MinHeapError("Element with this key already exists")
+        node = Node(key, value)
         self.__positions[key] = len(self.__heap)
-        self.__heap.append((key, value))
+        self.__heap.append(node)
         self.__sift_up(len(self.__heap) - 1)
 
     def set(self, key, value):
         if key not in self.__positions:
             raise MinHeapError("Element with this key was not found")
         index = self.__positions[key]
-        self.__heap[index] = (key, value)
+        self.__heap[index].value = value
         self.__sift_up(index)
         self.__sift_down(index)
 
@@ -63,10 +70,10 @@ class MinHeap:
         if key not in self.__positions:
             raise MinHeapError("Element with this key was not found")
         index = self.__positions[key]
-        last_item = self.__heap.pop()
+        last_node = self.__heap.pop()
         if index < len(self.__heap):
-            self.__heap[index] = last_item
-            self.__positions[last_item[0]] = index
+            self.__heap[index] = last_node
+            self.__positions[last_node.key] = index
             self.__sift_up(index)
             self.__sift_down(index)
         del self.__positions[key]
@@ -74,40 +81,38 @@ class MinHeap:
     def search(self, key):
         if key in self.__positions:
             index = self.__positions[key]
-            print(f"1 {index} {self.__heap[index][1]}")
+            node = self.__heap[index]
+            print(f"1 {index} {node.value}")
         else:
             print("0")
 
     def min(self):
         if not self.__heap:
             raise MinHeapError("Heap is empty")
-        key, value = self.__heap[0]
-        print(f"{key} 0 {value}")
+        min_node = self.__heap[0]
+        print(f"{min_node.key} 0 {min_node.value}")
 
     def max(self):
         if not self.__heap:
             raise MinHeapError("Heap is empty")
-        # Чтобы искать максимум эфективно будем проходить только по листам
         first_leaf = len(self.__heap) // 2
-        max_item = max(self.__heap[first_leaf:], key=lambda x: x[0])
-        index = self.__positions[max_item[0]]
-        print(f"{max_item[0]} {index} {max_item[1]}")
+        max_node = max(self.__heap[first_leaf:], key=lambda x: x.key)
+        index = self.__positions[max_node.key]
+        print(f"{max_node.key} {index} {max_node.value}")
 
     def extract(self):
         if not self.__heap:
             raise MinHeapError("Heap is empty")
         root = self.__heap[0]
-        self.delete(root[0])
-        print(f"{root[0]} {root[1]}")
+        self.delete(root.key)
+        print(f"{root.key} {root.value}")
 
     def print_heap(self, output_stream=sys.stdout):
-        # print("heap:", self.__heap, file=output_stream)
-        # print("positions:", self.__positions, file=output_stream)
         if not self.__heap:
             print("_", file=output_stream)
             return
 
-        print(f"[{self.__heap[0][0]} {self.__heap[0][1]}]", file=output_stream)
+        print(f"[{self.__heap[0].key} {self.__heap[0].value}]", file=output_stream)
 
         it = iter(self.__heap)
         next(it)
@@ -121,8 +126,8 @@ class MinHeap:
             join_buffer_count += 1
             count += 1
 
-            parent_index = (self.__positions[vertex[0]] - 1) // 2
-            line.append(f"[{vertex[0]} {vertex[1]} {self.__heap[parent_index][0]}]")
+            parent_index = (self.__positions[vertex.key] - 1) // 2
+            line.append(f"[{vertex.key} {vertex.value} {self.__heap[parent_index].key}]")
 
             if join_buffer_count == 1000:
                 print(" ".join(line), end=" ", file=output_stream)
