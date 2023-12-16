@@ -123,23 +123,19 @@ def main():
             for pattern in command_patterns:
                 match = pattern.match(line)
                 if match:
-                    if line.startswith("set"):
-                        if bloom_filter:
-                            print("error")
-                        else:
-                            n, P = int(match.group(1)), float(match.group(2))
-                            bloom_filter = BloomFilter(n, P)
-                            print(f"{bloom_filter.get_m()} {bloom_filter.get_k()}", file=output_stream)
-                    elif line.startswith("add"):
-                        if bloom_filter:
-                            bloom_filter.add(int(match.group(1)))
-                    elif line.startswith("search"):
-                        if bloom_filter:
-                            result = 1 if bloom_filter.search(int(match.group(1))) else 0
-                            print(result, file=output_stream)
-                    elif line.startswith("print"):
-                        if bloom_filter:
-                            bloom_filter.print_state(output_stream=output_stream)
+                    if line.startswith("set") and not bloom_filter:
+                        n, P = int(match.group(1)), float(match.group(2))
+                        bloom_filter = BloomFilter(n, P)
+                        print(f"{bloom_filter.get_m()} {bloom_filter.get_k()}", file=output_stream)
+                    elif line.startswith("add") and bloom_filter:
+                        bloom_filter.add(int(match.group(1)))
+                    elif line.startswith("search") and bloom_filter:
+                        result = 1 if bloom_filter.search(int(match.group(1))) else 0
+                        print(result, file=output_stream)
+                    elif line.startswith("print") and bloom_filter:
+                        bloom_filter.print_state(output_stream=output_stream)
+                    else:
+                        print("error", file=output_stream)
                     break
             else:
                 print("error", file=output_stream)
