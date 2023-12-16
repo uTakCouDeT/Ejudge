@@ -7,13 +7,51 @@ class BloomFilterError(Exception):
     pass
 
 
+class IntBitArray:
+    """
+    Целое число в Python может быть использовано для представления битового массива,
+    поскольку оно эффективно хранит информацию в битах и поддерживает битовые операции.
+    В этом подходе каждый бит в числе представляет один бит в массиве.
+    """
+
+    def __init__(self, size):
+        self.__size = size
+        self.__bit_array = 0
+
+    def set_bit(self, index):
+        """ Устанавливает бит в позиции index в 1. """
+        if index >= self.__size or index < 0:
+            raise IndexError("Index out of range")
+        self.__bit_array |= 1 << index
+
+    def reset_bit(self, index):
+        """ Устанавливает бит в позиции index в 0. """
+        if index >= self.__size or index < 0:
+            raise IndexError("Index out of range")
+        self.__bit_array &= ~(1 << index)
+
+    def get_bit(self, index):
+        """ Возвращает значение бита в позиции index. """
+        if index >= self.__size or index < 0:
+            raise IndexError("Index out of range")
+        return (self.__bit_array & (1 << index)) != 0
+
+    def __str__(self):
+        """ Возвращает строковое представление битового массива в правильном порядке. """
+        return bin(self.__bit_array)[2:].zfill(self.__size)[::-1]
+
+
 class BloomFilter:
     def __init__(self, n, P):
         if n > 0 and 0 < P < 1:
             self.__m = round(-n * log2(P) / log(2))
             self.__k = round(-log2(P))
-            self.__bit_array = [0] * self.__m
-            self.__M = 2147483647  # 31-е число Мерсенна
+            self.__bit_array = IntBitArray(self.__m)
+            self.__primes = self.__get_primes(self.__k)
+            """
+            Хранение массива простых чисел позволяет избежать повторных 
+            вычислений и повышает общую производительность.
+            """
         else:
             raise BloomFilterError("Incorrect values")
 
@@ -26,45 +64,46 @@ class BloomFilter:
     def add(self, key):
         for i in range(self.__k):
             index = self.__hash(i, key) % self.__m
-            self.__bit_array[index] = 1
+            self.__bit_array.set_bit(index)
 
     def search(self, key):
         for i in range(self.__k):
             index = self.__hash(i, key) % self.__m
-            if self.__bit_array[index] == 0:
+            if self.__bit_array.get_bit(index) == 0:
                 return False
         return True
 
     def __hash(self, i, key):
-        prime = self.__get_prime(i + 1)
-        return ((i + 1) * key + prime) % self.__M
+        prime = self.__primes[i]
+        return ((i + 1) * key + prime) % 2147483647  # 31-е число Мерсенна
 
     @staticmethod
-    def __get_prime(n):
-        if n == 1:
-            return 2
+    def __get_primes(n):
+        """
+        Используем решето Эратосфена - один из самых эффективных способов нахождения простых чисел.
+        Этот алгоритм хорошо подходит для нахождения всех простых чисел в заданном диапазоне
+        """
+        if n < 1:
+            return []
 
+        # Приблизительная оценка верхней границы для n-го простого числа
         upper_bound = max(int(n * log(n) * 1.5), 10)
         primes = [True] * upper_bound
         primes[0], primes[1] = False, False
-        p, count = 2, 0
+        prime_numbers = []
 
-        while count < n:
+        for p in range(2, upper_bound):
             if primes[p]:
-                count += 1
+                prime_numbers.append(p)
+                if len(prime_numbers) == n:
+                    break
                 for i in range(p * p, upper_bound, p):
-                    if i < upper_bound:
-                        primes[i] = False
-            p += 1
-            if p >= upper_bound:
-                extra_bound = int(upper_bound * 1.5)
-                primes.extend([True] * (extra_bound - upper_bound))
-                upper_bound = extra_bound
+                    primes[i] = False
 
-        return p - 1
+        return prime_numbers
 
     def print_state(self, output_stream=sys.stdout):
-        print(''.join(map(str, self.__bit_array)), file=output_stream)
+        print(self.__bit_array, file=output_stream)
 
 
 def main():
