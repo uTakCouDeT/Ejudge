@@ -57,6 +57,8 @@ class KnapsackProblem:
         return dp[best_cost]
 
     def get_solution(self):
+        if not self.items:
+            return Solution(0, 0, [])
         best_weight, selected_items = self.__find_best_combination()
         total_cost = sum(self.items[i].cost for i in selected_items)
         return Solution(best_weight, total_cost, [i + 1 for i in selected_items])
