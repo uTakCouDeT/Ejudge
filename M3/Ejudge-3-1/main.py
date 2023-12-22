@@ -1,53 +1,60 @@
 import sys
-from datetime import datetime, timedelta
 
 
-def calculate_block_time(attempts, N, P, B, B_max, current_time):
-    # Преобразование текущего времени в объект datetime для удобства
-    current_datetime = datetime.fromtimestamp(current_time)
-    max_block_datetime = current_datetime - timedelta(seconds=2 * B_max)
+# Для того чтобы сразу отбрасывать попытки которые старше 2*B_max, удобнее использовать класс
+class BlockTimeCalculator:
+    def __init__(self, b_max, current_time):
+        self.__b_max = b_max
+        self.__current_time = current_time
+        self.__login_attempts = []
 
-    # Фильтрация попыток, которые старше 2*B_max
-    filtered_attempts = [datetime.fromtimestamp(attempt) for attempt in attempts if
-                         datetime.fromtimestamp(attempt) >= max_block_datetime]
+    def add_login_attempt(self, timestamp):
+        # при добавлении отбрасываем лишние попытки
+        if self.__current_time - timestamp <= 2 * self.__b_max:
+            self.__login_attempts.append(timestamp)
 
-    # Сортировка отфильтрованных попыток по времени
-    filtered_attempts.sort()
+    def calculate_block_time(self, n, p, b):
+        # Сортировка попыток по времени
+        self.__login_attempts.sort()
 
-    # Инициализация переменных для отслеживания блокировок
-    block_duration = timedelta(seconds=B)
-    last_block_end = None
+        # Инициализация переменных для отслеживания блокировок
+        block_duration = b
+        last_block_end = None
 
-    for i in range(len(filtered_attempts)):
-        # Проверка, есть ли N неудачных попыток в интервале P
-        if i >= N - 1 and filtered_attempts[i] - filtered_attempts[i - N + 1] <= timedelta(seconds=P):
-            # Расчет начала и конца блокировки
-            block_start = filtered_attempts[i]
-            block_end = block_start + block_duration
+        for i in range(len(self.__login_attempts)):
+            # Проверка, есть ли N неудачных попыток в интервале P
+            if i >= n - 1 and self.__login_attempts[i] - self.__login_attempts[i - n + 1] <= p:
+                # Расчет начала и конца блокировки
+                block_start = self.__login_attempts[i]
+                block_end = block_start + block_duration
 
-            # Проверка, не находится ли предыдущая блокировка в этом интервале
-            if not last_block_end or block_start > last_block_end:
-                # Удваивание времени блокировки для следующей блокировки, но не более B_max
-                block_duration = min(block_duration * 2, timedelta(seconds=B_max))
-                last_block_end = block_end
+                # Проверка, не находится ли предыдущая блокировка в этом интервале
+                if not last_block_end or block_start > last_block_end:
+                    # Удваивание времени блокировки для следующей блокировки, но не более B_max
+                    block_duration = min(block_duration * 2, self.__b_max)
+                    last_block_end = block_end
 
-    # Проверка, истекло ли время последней блокировки
-    if last_block_end and last_block_end > current_datetime:
-        return int(last_block_end.timestamp())
-    else:
-        return "ok"
+        # Проверка, истекло ли время последней блокировки
+        if last_block_end and last_block_end > self.__current_time:
+            return int(last_block_end)
+        else:
+            return None
 
 
 def main():
-    N, P, B, B_max, current_time = map(int, next(sys.stdin).strip().split())
-    test_attempts = []
+    n, p, b, b_max, current_time = map(int, next(sys.stdin).strip().split())
+    block_time_calculator = BlockTimeCalculator(b_max, current_time)
 
     for line in sys.stdin:
         line = line.rstrip('\n')
         if line:
-            test_attempts.append(int(line))
+            block_time_calculator.add_login_attempt(int(line))
 
-    print(calculate_block_time(test_attempts, N, P, B, B_max, current_time))
+    block_time = block_time_calculator.calculate_block_time(n, p, b)
+    if block_time:
+        print(block_time)
+    else:
+        print("ok")
 
 
 if __name__ == "__main__":
