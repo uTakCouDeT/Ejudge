@@ -1,59 +1,53 @@
 import sys
+from datetime import datetime, timedelta
 
 
-class LoginBlocker:
-    def __init__(self, n, p, b, b_max, current_time):
-        self.__n = n
-        self.__p = p
-        self.__b_min = b
-        self.__b_max = b_max
-        self.__current_time = current_time
-        self.__login_attempts = []
+def calculate_block_time(attempts, N, P, B, B_max, current_time):
+    # Преобразование текущего времени в объект datetime для удобства
+    current_datetime = datetime.fromtimestamp(current_time)
+    max_block_datetime = current_datetime - timedelta(seconds=2 * B_max)
 
-    def add_login_attempt(self, timestamp):
-        # Очищаем попытки, которые уже не важны
-        self.__login_attempts = [t for t in self.__login_attempts if self.__current_time - t <= 2 * self.__b_max]
-        self.__login_attempts.append(timestamp)
+    # Фильтрация попыток, которые старше 2*B_max
+    filtered_attempts = [datetime.fromtimestamp(attempt) for attempt in attempts if
+                         datetime.fromtimestamp(attempt) >= max_block_datetime]
 
-    def __compute_block_duration(self):
-        # Проверяем попытки входа и вычисляем время блокировки
-        self.__login_attempts.sort()
-        block_duration = self.__b_min
-        last_block_end = 0
+    # Сортировка отфильтрованных попыток по времени
+    filtered_attempts.sort()
 
-        for i in range(len(self.__login_attempts) - self.__n + 1):
-            window = self.__login_attempts[i:i + self.__n]
-            if window[-1] - window[0] <= self.__p:
-                if last_block_end >= window[0]:
-                    block_duration = min(block_duration * 2, self.__b_max)
-                last_block_end = window[-1] + block_duration
-                i += self.__n - 1  # Пропускаем проверяемое окно
+    # Инициализация переменных для отслеживания блокировок
+    block_duration = timedelta(seconds=B)
+    last_block_end = None
 
-        return last_block_end
+    for i in range(len(filtered_attempts)):
+        # Проверка, есть ли N неудачных попыток в интервале P
+        if i >= N - 1 and filtered_attempts[i] - filtered_attempts[i - N + 1] <= timedelta(seconds=P):
+            # Расчет начала и конца блокировки
+            block_start = filtered_attempts[i]
+            block_end = block_start + block_duration
 
-    def unlock_time(self):
-        block_end = self.__compute_block_duration()
-        if block_end > self.__current_time:
-            return block_end
-        else:
-            return None
+            # Проверка, не находится ли предыдущая блокировка в этом интервале
+            if not last_block_end or block_start > last_block_end:
+                # Удваивание времени блокировки для следующей блокировки, но не более B_max
+                block_duration = min(block_duration * 2, timedelta(seconds=B_max))
+                last_block_end = block_end
+
+    # Проверка, истекло ли время последней блокировки
+    if last_block_end and last_block_end > current_datetime:
+        return int(last_block_end.timestamp())
+    else:
+        return "ok"
 
 
 def main():
-    n, p, b, b_max, current_time = map(int, next(sys.stdin).strip().split())
-    blocker = LoginBlocker(n, p, b, b_max, current_time)
+    N, P, B, B_max, current_time = map(int, next(sys.stdin).strip().split())
+    test_attempts = []
 
     for line in sys.stdin:
         line = line.rstrip('\n')
         if line:
-            timestamp = int(line)
-            blocker.add_login_attempt(timestamp)
+            test_attempts.append(int(line))
 
-    unlock_time = blocker.unlock_time()
-    if unlock_time:
-        print(unlock_time)
-    else:
-        print("ok")
+    print(calculate_block_time(test_attempts, N, P, B, B_max, current_time))
 
 
 if __name__ == "__main__":
