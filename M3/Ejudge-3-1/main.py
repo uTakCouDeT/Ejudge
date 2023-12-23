@@ -41,23 +41,18 @@ class BlockTimeCalculator:
 
         # Инициализация переменных для отслеживания блокировок
         block_duration = b
-        last_block_end = None
+        last_block_end = 0
 
-        for i in range(len(self.__login_attempts)):
+        for i in range(n - 1, len(self.__login_attempts)):
             # Проверка, есть ли N неудачных попыток в интервале P
-            if i >= n - 1 and self.__login_attempts[i] - self.__login_attempts[i - n + 1] <= p:
-                # Расчет начала и конца блокировки
-                block_start = self.__login_attempts[i]
-                block_end = block_start + block_duration
-
-                # Проверка, не находится ли предыдущая блокировка в этом интервале
-                if not last_block_end or block_start > last_block_end:
-                    # Удваивание времени блокировки для следующей блокировки, но не более B_max
-                    block_duration = min(block_duration * 2, self.__b_max)
-                    last_block_end = block_end
+            if self.__login_attempts[i] - self.__login_attempts[i - n + 1] <= p:
+                # Расчет времени конца блокировки
+                last_block_end = self.__login_attempts[i] + block_duration
+                # Удваивание времени блокировки для следующей блокировки, но не более B_max
+                block_duration = min(block_duration * 2, self.__b_max)
 
         # Проверка, истекло ли время последней блокировки
-        if last_block_end and last_block_end > self.__current_time:
+        if last_block_end > self.__current_time:
             return int(last_block_end)
         else:
             return None
