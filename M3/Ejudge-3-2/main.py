@@ -1,44 +1,83 @@
 import sys
 import re
-from math import log2, log
+from math import ceil, log2, log
 
 
 class BloomFilterError(Exception):
     pass
 
 
-class IntBitArray:
+# class IntBitArray:
+#     """
+#     Целое число в Python может быть использовано для представления битового массива,
+#     поскольку оно эффективно хранит информацию в битах и поддерживает битовые операции.
+#     В этом подходе каждый бит в числе представляет один бит в массиве.
+#     """
+#
+#     def __init__(self, size):
+#         self.__size = size
+#         self.__bit_array = 0
+#
+#     def set_bit(self, index):
+#         """ Устанавливает бит в позиции index в 1 """
+#         if index >= self.__size or index < 0:
+#             raise IndexError("Index out of range")
+#         self.__bit_array |= 1 << index
+#
+#     def reset_bit(self, index):
+#         """ Устанавливает бит в позиции index в 0 """
+#         if index >= self.__size or index < 0:
+#             raise IndexError("Index out of range")
+#         self.__bit_array &= ~(1 << index)
+#
+#     def get_bit(self, index):
+#         """ Возвращает значение бита в позиции index """
+#         if index >= self.__size or index < 0:
+#             raise IndexError("Index out of range")
+#         return (self.__bit_array & (1 << index)) != 0
+#
+#     def __str__(self):
+#         """ Возвращает строковое представление битового массива в правильном порядке """
+#         return bin(self.__bit_array)[2:].zfill(self.__size)[::-1]
+
+
+class ByteBitArray:
     """
-    Целое число в Python может быть использовано для представления битового массива,
-    поскольку оно эффективно хранит информацию в битах и поддерживает битовые операции.
-    В этом подходе каждый бит в числе представляет один бит в массиве.
+    Сначала хотел использовать реализацию с представлением массива через целое число,
+    Но потом решил что стандартное представление bitarray через bytearray эффективнее
     """
 
     def __init__(self, size):
         self.__size = size
-        self.__bit_array = 0
+        self.__bit_array = bytearray(ceil(size / 8))
 
     def set_bit(self, index):
-        """ Устанавливает бит в позиции index в 1. """
+        """ Устанавливает бит в позиции index в 1 """
         if index >= self.__size or index < 0:
             raise IndexError("Index out of range")
-        self.__bit_array |= 1 << index
+        byte_index, bit_index = divmod(index, 8)
+        self.__bit_array[byte_index] |= 1 << bit_index
 
     def reset_bit(self, index):
-        """ Устанавливает бит в позиции index в 0. """
+        """ Устанавливает бит в позиции index в 0 """
         if index >= self.__size or index < 0:
             raise IndexError("Index out of range")
-        self.__bit_array &= ~(1 << index)
+        byte_index, bit_index = divmod(index, 8)
+        self.__bit_array[byte_index] &= ~(1 << bit_index)
 
     def get_bit(self, index):
-        """ Возвращает значение бита в позиции index. """
+        """ Возвращает значение бита в позиции index """
         if index >= self.__size or index < 0:
             raise IndexError("Index out of range")
-        return (self.__bit_array & (1 << index)) != 0
+        byte_index, bit_index = divmod(index, 8)
+        return (self.__bit_array[byte_index] >> bit_index) & 1
 
     def __str__(self):
-        """ Возвращает строковое представление битового массива в правильном порядке. """
-        return bin(self.__bit_array)[2:].zfill(self.__size)[::-1]
+        """ Возвращает строковое представление битового массива в правильном порядке """
+        bit_string = ''
+        for i in range(self.__size):
+            bit_string += str(self.get_bit(i))
+        return bit_string
 
 
 class BloomFilter:
@@ -46,7 +85,11 @@ class BloomFilter:
         if n > 0 and 0 < P < 1:
             self.__m = round(-n * log2(P) / log(2))
             self.__k = round(-log2(P))
-            self.__bit_array = IntBitArray(self.__m)
+
+            if self.__m <= 0 or self.__k <= 0:
+                raise BloomFilterError("Incorrect values")
+
+            self.__bit_array = ByteBitArray(self.__m)
             self.__primes = self.__get_primes(self.__k)
             """
             Хранение массива простых чисел позволяет избежать повторных 
@@ -102,12 +145,11 @@ class BloomFilter:
 
         return prime_numbers
 
-    def print_state(self, output_stream=sys.stdout):
-        print(self.__bit_array, file=output_stream)
+    def __str__(self):
+        return str(self.__bit_array)
 
 
 def main():
-    output_stream = sys.stdout
     bloom_filter = None
     command_patterns = [
         re.compile(r'^set (\d+) (\d+\.\d+)$'),
@@ -126,21 +168,21 @@ def main():
                     if line.startswith("set") and not bloom_filter:
                         n, P = int(match.group(1)), float(match.group(2))
                         bloom_filter = BloomFilter(n, P)
-                        print(f"{bloom_filter.get_m()} {bloom_filter.get_k()}", file=output_stream)
+                        print(f"{bloom_filter.get_m()} {bloom_filter.get_k()}")
                     elif line.startswith("add") and bloom_filter:
                         bloom_filter.add(int(match.group(1)))
                     elif line.startswith("search") and bloom_filter:
                         result = 1 if bloom_filter.search(int(match.group(1))) else 0
-                        print(result, file=output_stream)
+                        print(result)
                     elif line.startswith("print") and bloom_filter:
-                        bloom_filter.print_state(output_stream=output_stream)
+                        print(bloom_filter)
                     else:
-                        print("error", file=output_stream)
+                        print("error")
                     break
             else:
-                print("error", file=output_stream)
+                print("error")
         except BloomFilterError as ex:
-            print(f"error", file=output_stream)
+            print(f"error")
 
 
 if __name__ == "__main__":
