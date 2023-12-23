@@ -43,13 +43,17 @@ class BlockTimeCalculator:
         block_duration = b
         last_block_end = 0
 
-        for i in range(n - 1, len(self.__login_attempts)):
+        i = n - 1
+        while i < len(self.__login_attempts):
             # Проверка, есть ли N неудачных попыток в интервале P
             if self.__login_attempts[i] - self.__login_attempts[i - n + 1] <= p:
                 # Расчет времени конца блокировки
                 last_block_end = self.__login_attempts[i] + block_duration
                 # Удваивание времени блокировки для следующей блокировки, но не более B_max
                 block_duration = min(block_duration * 2, self.__b_max)
+                i += n
+            else:
+                i += 1
 
         # Проверка, истекло ли время последней блокировки
         if last_block_end > self.__current_time:
