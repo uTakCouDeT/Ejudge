@@ -95,101 +95,143 @@ class Trie:
 
         return False
 
-    def get_corrections(self, word):
+    def get_words_with_similar_length(self, length):
         """
-            Сложность: O(k * n^2), где k - количество слов в словаре, длина которых по модулю отличается
-            от длины проверяемого слова на 1, n - длина проверяемого слова (в худшем случае)
+        Сложность: O(m + n), где m - длина префикса, а n - общее количество символов в поддереве,
+                                                              начинающемся с узла этого префикса.
+        Метод исследует поддерево для сбора слов, имеющих схожую длину с префиксом,
+        и зависит от длины префикса и количества символов в этом поддереве.
         """
-        word = word.lower()
-        stack = [(self.__root, "")]
-        corrections = []
-        word_len = len(word)
+        words = []
+        stack = [(self.__root, "")]  # Стек для хранения пар (node, current_word)
 
         while stack:
-            node, prefix = stack.pop()
+            node, current_word = stack.pop()
+            if abs(len(current_word) - length) <= 1 and node.end_of_word:
+                words.append(current_word)
 
-            if len(prefix) > word_len + 1:
-                continue
+            for char, next_node in node.children.items():
+                stack.append((next_node, current_word + char))
 
-            if node.end_of_word and len(prefix) >= word_len - 1:
-                if self.__is_dam_lev_distance_one(word, prefix):
-                    corrections.append(prefix)
+        return words
 
-            for child_suffix, child_node in node.children.items():
-                stack.append((child_node, prefix + child_suffix))
 
-        return corrections
+class AutoCorrection:
+    def __init__(self):
+        self.__dictionary = Trie()
+
+    def add_word_in_dictionary(self, word):
+        self.__dictionary.add(word)
+
+    def correctness_check(self, word):
+        return self.__dictionary.search(word)
 
     @staticmethod
-    def __is_dam_lev_distance_one(s1, s2):
+    def __calculate_edit_distance(left_word, right_word):
         """
-            Сложность: O(m * n), где m и n - длины сравниваемых слов (в худшем случае)
-            Пояснение: Алгоритм использует два вложенных цикла, каждый из которых проходит по длине одной из строк.
-            В худшем случае это дает сложность O(n * m), где n и m - длины сравниваемых строк.
+        Вычисляет, является ли расстояние редактирования между двумя строками равным 1.
+        Это метод алгоритма Дамерау-Левенштейна с ограниченной сложностью O(m * n).
+
+            Сложность: O(m * n), где m и n - длины двух строк.
+            Это обусловлено использованием двух вложенных циклов, каждый из которых проходит от 1 до длины
+            соответствующей строки. Основная операция внутри вложенного цикла выполняется за константное время.
+
+            * Выполненные Оптимизации:
+
+            Оптимизация По Памяти:
+                Вместо хранения всей матрицы редактирования алгоритм хранит только три строки одновременно
+                (текущую, предыдущую и "пред-предыдущую" строку). Это значительно снижает использование
+                памяти по сравнению с классическим подходом, где требуется хранить всю матрицу.
+
+            Ранний Выход:
+                Алгоритм реализует ранний выход из текущей итерации, если минимальное значение в текущей
+                строке матрицы превышает 1. Это уменьшает количество ненужных вычислений, так как если
+                минимальное расстояние уже больше 1, то дальнейшие проверки не изменят общий результат.
+
+            Оптимизация Транспозиции:
+                Учет операции транспозиции (обмен местами двух соседних символов) реализован только в том случае,
+                если текущий символ i и j предшествуют друг другу в обоих строках. Это улучшает эффективность,
+                так как операция транспозиции проверяется только тогда, когда это действительно необходимо.
         """
-        len_s1, len_s2 = len(s1), len(s2)
+        left_word_len, right_word_len = len(left_word), len(right_word)
 
-        prev_prev_row = None
-        prev_row = list(range(len_s2 + 1))
-        current_row = [0] * (len_s2 + 1)
+        # Инициализация матрицы редактирования
+        previous_row = [i for i in range(right_word_len + 1)]
+        current_row = [0] * (right_word_len + 1)
+        two_rows_ago = None
 
-        for i in range(1, len_s1 + 1):
+        for i in range(1, left_word_len + 1):
             current_row[0] = i
-            for j in range(1, len_s2 + 1):
-                cost = 0 if s1[i - 1] == s2[j - 1] else 1
-                current_row[j] = min(prev_row[j] + 1, current_row[j - 1] + 1, prev_row[j - 1] + cost)
+            for j in range(1, right_word_len + 1):
+                substitution_cost = 0 if left_word[i - 1] == right_word[j - 1] else 1
+                current_row[j] = min(
+                    previous_row[j] + 1,  # удаление
+                    current_row[j - 1] + 1,  # вставка
+                    previous_row[j - 1] + substitution_cost  # замена
+                )
 
-                if prev_prev_row and s1[i - 1] == s2[j - 2] and s1[i - 2] == s2[j - 1]:
-                    current_row[j] = min(current_row[j], prev_prev_row[j - 2] + 1)
+                if two_rows_ago is not None and i > 1 and j > 1 \
+                        and left_word[i - 1] == right_word[j - 2] and left_word[i - 2] == right_word[j - 1]:
+                    current_row[j] = min(current_row[j], two_rows_ago[j - 2] + 1)  # транспозиция
 
             if min(current_row) > 1:
                 return False
 
-            prev_prev_row = prev_row.copy() if 0 in prev_row else None
-            prev_row, current_row = current_row, [0] * (len_s2 + 1)
+            two_rows_ago = previous_row.copy() if 0 in previous_row else None
+            previous_row, current_row = current_row, [0] * (right_word_len + 1)
 
-        return True if prev_row[len_s2] == 1 else False
+        return previous_row[right_word_len] == 1
+
+    def get_corrections_array(self, word):
+        """
+        Сложность: O(k * n^2), где k - количество слов в словаре, длина которых отличается
+        от длины проверяемого слова на 1 символ, n - длина проверяемого слова.
+
+        Метод использует стек для итеративного обхода дерева в глубину. Каждый узел
+        посещается только один раз. Обход останавливается, если длина текущего префикса в словаре
+        становится больше длины проверяемого слова. Если длина слова из словаря отличается от длины
+        проверяемого более чем на 1 символ, то алгоритм Дамерау-Левенштейна не применяется.
+
+        Для каждого слова из словаря, длина которого отличается от длины проверяемого слова на 1 символ,
+        выполняется проверка расстояния редактирования Дамерау-Левенштейна. В худшем случае
+        выполнение этой проверки требует времени O(n^2), где n - длина проверяемого слова.
+
+        Таким образом, общая временная сложность метода составляет O(k * n^2), где k - количество слов
+        в словаре, длина которых отличается от длины проверяемого слова на 1 символ, n - длина проверяемого слова
+        (в худшем случае).
+        """
+        word = word.lower()
+        corrections = set()
+        similar_length_words = self.__dictionary.get_words_with_similar_length(len(word))
+        for candidate in similar_length_words:
+            if self.__calculate_edit_distance(word, candidate):
+                corrections.add(candidate)
+        return list(corrections)
 
 
-class AutoCorrect:
-    def __init__(self):
-        self.__radix = Trie()
-
-    def add_word(self, word):
-        self.__radix.add(word)
-
-    def is_correct(self, word):
-        return self.__radix.search(word)
-
-    def get_corrections(self, word):
-        return self.__radix.get_corrections(word)
-
-
-def print_corrections(word, is_correct, corrections, output_stream=sys.stdout):
+def corrections_handler(word, is_correct, corrections_array, stream=sys.stdout):
     if is_correct:
-        print(f"{word} - ok", file=output_stream)
-        return
-
-    if corrections:
-        corrections.sort()
-        print(f"{word} -> {', '.join(corrections)}", file=output_stream)
+        stream.write(f"{word} - ok\n")
     else:
-        print(f"{word} -?", file=output_stream)
+        if corrections_array:
+            corrections_array.sort()
+            stream.write(f"{word} -> {', '.join(corrections_array)}\n")
+        else:
+            stream.write(f"{word} -?\n")
 
 
 def main():
-    ac = AutoCorrect()
+    auto_correction = AutoCorrection()
 
-    n = int(next(sys.stdin).strip())
-    for _ in range(n):
-        ac.add_word(next(sys.stdin).rstrip('\n'))
+    for i in range(int(next(sys.stdin).strip())):
+        auto_correction.add_word_in_dictionary(next(sys.stdin).rstrip('\n'))
 
     for line in sys.stdin:
         line = line.rstrip('\n')
         if line:
-            is_correct = ac.is_correct(line)
-            corrections = ac.get_corrections(line)
-            print_corrections(line, is_correct, corrections)
+            is_correct = auto_correction.correctness_check(line)
+            corrections_array = auto_correction.get_corrections_array(line)
+            corrections_handler(line, is_correct, corrections_array)
 
 
 if __name__ == "__main__":
