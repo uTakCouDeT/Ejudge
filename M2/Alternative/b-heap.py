@@ -99,89 +99,83 @@ class MinHeap:
         index = self.get_index(key)
         return None if index is None else self.__nodes_list[index]
 
+    def __format_node(self, node, parent_index=None):
+        if parent_index is None:
+            return f'[{node.key} {node.value}]'
+        return f'[{node.key} {node.value} {self.__nodes_list[parent_index].key}]'
+
+    def __get_layer_nodes(self, start, end, layer_size):
+        nodes = []
+        for i in range(start, min(end, len(self.__nodes_list))):
+            parent_index = (i - 1) // 2 if i != 0 else None
+            nodes.append(self.__format_node(self.__nodes_list[i], parent_index))
+        nodes.extend(['_'] * (layer_size - len(nodes)))
+        return nodes
+
     def print_heap(self, output_stream=sys.stdout):
         if not self.__nodes_list:
             print("_", file=output_stream)
             return
 
-        print(f"[{self.__nodes_list[0].key} {self.__nodes_list[0].value}]", file=output_stream)
-
-        it = iter(self.__nodes_list)
-        next(it)
-
-        level_length = 2
-        count = 0
-        line = []
-
-        for vertex in it:
-            count += 1
-
-            parent_index = (self.__index_dict[vertex.key] - 1) // 2
-            line.append(f"[{vertex.key} {vertex.value} {self.__nodes_list[parent_index].key}]")
-
-            if count == level_length:
-                print(" ".join(line), file=output_stream)
-                line = []
-                level_length *= 2
-                count = 0
-
-        if count != 0:
-            print(" ".join(line), end="", file=output_stream)
-            print(" _" * (level_length - count), file=output_stream)
+        layer, index = 1, 0
+        while index < len(self.__nodes_list):
+            layer_end = index + layer
+            print(' '.join(self.__get_layer_nodes(index, layer_end, layer)), file=output_stream)
+            index = layer_end
+            layer *= 2
 
 
 def main():
     min_heap = MinHeap()
-    command_patterns = [
-        re.compile(r'^add (-?\d+) (\S*)$'),
-        re.compile(r'^set (-?\d+) (\S*)$'),
-        re.compile(r'^delete (-?\d+)$'),
-        re.compile(r'^search (-?\d+)$'),
-        re.compile(r'^min$'),
-        re.compile(r'^max$'),
-        re.compile(r'^extract$'),
-        re.compile(r'^print$'),
-    ]
 
     for line in sys.stdin:
-        if not line or line == "\n":
-            continue
-        try:
-            for pattern in command_patterns:
-                match = pattern.match(line)
-                if match:
-                    if line.startswith("add"):
-                        min_heap.add(int(match.group(1)), str(match.group(2)))
-                    elif line.startswith("set"):
-                        min_heap.set(int(match.group(1)), str(match.group(2)))
-                    elif line.startswith("delete"):
-                        min_heap.delete(int(match.group(1)))
-                    elif line.startswith("search"):
-                        node = min_heap.search(int(match.group(1)))
-                        if node:
-                            index = min_heap.get_index(node.key)
-                            print(f"1 {index} {node.value}")
-                        else:
-                            print("0")
-                    elif line.startswith("min"):
-                        min_node = min_heap.min()
-                        print(f"{min_node.key} 0 {min_node.value}")
-                    elif line.startswith("max"):
-                        max_node = min_heap.max()
-                        index = min_heap.get_index(max_node.key)
-                        print(f"{max_node.key} {index} {max_node.value}")
-                    elif line.startswith("extract"):
-                        node = min_heap.extract()
-                        print(f"{node.key} {node.value}")
-                    elif line.startswith("print"):
-                        min_heap.print_heap()
-                    break
-            else:
+        line = line.rstrip("\n")
+        if line:
+            try:
+                if re.match(r'^add (-?\d+) (\S*)$', line):
+                    key, value = re.match(r'^add (-?\d+) (\S*)$', line).groups()
+                    min_heap.add(int(key), value)
+
+                elif re.match(r'^set (-?\d+) (\S*)$', line):
+                    key, value = re.match(r'^set (-?\d+) (\S*)$', line).groups()
+                    min_heap.set(int(key), value)
+
+                elif re.match(r'^delete (-?\d+)$', line):
+                    key = re.match(r'^delete (-?\d+)$', line).group(1)
+                    min_heap.delete(int(key))
+
+                elif re.match(r'^search (-?\d+)$', line):
+                    key = re.match(r'^search (-?\d+)$', line).group(1)
+                    node = min_heap.search(int(key))
+                    if node:
+                        index = min_heap.get_index(node.key)
+                        print(f"1 {index} {node.value}")
+                    else:
+                        print("0")
+
+                elif re.match(r'^min$', line):
+                    min_node = min_heap.min()
+                    print(f"{min_node.key} 0 {min_node.value}")
+
+                elif re.match(r'^max$', line):
+                    max_node = min_heap.max()
+                    index = min_heap.get_index(max_node.key)
+                    print(f"{max_node.key} {index} {max_node.value}")
+
+                elif re.match(r'^extract$', line):
+                    node = min_heap.extract()
+                    print(f"{node.key} {node.value}")
+
+                elif re.match(r'^print$', line):
+                    min_heap.print_heap()
+
+                else:
+                    print("error")
+
+            except ValueError:
                 print("error")
-        except KeyError:
-            print("error")
-        except ValueError:
-            print("error")
+            except KeyError:
+                print("error")
 
 
 if __name__ == "__main__":
