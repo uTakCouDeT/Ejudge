@@ -52,7 +52,7 @@ class MinHeap:
 
     def set(self, key, value):
         if key not in self.__index_dict:
-            raise KeyError("Element was not found")
+            raise KeyError("No such element")
         index = self.__index_dict[key]
         self.__nodes_list[index].value = value
         self.__sift_up(index)
@@ -60,7 +60,7 @@ class MinHeap:
 
     def delete(self, key):
         if key not in self.__index_dict:
-            raise KeyError("Element was not found")
+            raise KeyError("No such element")
         index = self.__index_dict[key]
         last_node = self.__nodes_list.pop()
         if index < len(self.__nodes_list):

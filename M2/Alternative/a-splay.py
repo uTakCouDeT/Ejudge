@@ -1,6 +1,6 @@
-import re
-import sys
 from collections import deque
+import sys
+import re
 
 
 class Node:
@@ -34,38 +34,43 @@ class SplayTree:
         setattr(y, 'left' if left else 'right', x)
         x.parent = y
 
-    def __splay(self, node):
-        while node.parent:
-            is_left_child = node == node.parent.left
-            is_parent_left_child = node.parent == node.parent.parent.left if node.parent.parent else False
-
-            if node.parent.parent is None:
-                # Zig
-                self.__rotate(node.parent, left=is_left_child)
-            elif is_left_child == is_parent_left_child:
-                # Zig-Zig
-                self.__rotate(node.parent.parent, left=is_left_child)
-                self.__rotate(node.parent, left=is_left_child)
-            else:
-                # Zig-Zag
-                self.__rotate(node.parent, left=is_left_child)
-                self.__rotate(node.parent, left=not is_left_child)
-
-        self.__root = node
+    def __splay(self, current_node):
+        while current_node.parent:
+            # Один поворот (Zig)
+            if current_node.parent.parent is None:
+                if current_node == current_node.parent.left:
+                    self.__rotate(current_node.parent, left=False)
+                else:
+                    self.__rotate(current_node.parent, left=True)
+            # Два поворота (Zig-Zig)
+            elif current_node == current_node.parent.left and current_node.parent == current_node.parent.parent.left:
+                self.__rotate(current_node.parent.parent, left=False)
+                self.__rotate(current_node.parent, left=False)
+            elif current_node == current_node.parent.right and current_node.parent == current_node.parent.parent.right:
+                self.__rotate(current_node.parent.parent, left=True)
+                self.__rotate(current_node.parent, left=True)
+            # Два поворота (Zig-Zag)
+            elif current_node == current_node.parent.right and current_node.parent == current_node.parent.parent.left:
+                self.__rotate(current_node.parent, left=True)
+                self.__rotate(current_node.parent, left=False)
+            elif current_node == current_node.parent.left and current_node.parent == current_node.parent.parent.right:
+                self.__rotate(current_node.parent, left=False)
+                self.__rotate(current_node.parent, left=True)
+        self.__root = current_node
 
     def add(self, key, value):
-        node = self.__root
+        current_node = self.__root
         parent = None
 
-        while node:
-            parent = node
-            if key == node.key:
-                self.__splay(node)
+        while current_node:
+            parent = current_node
+            if key == current_node.key:
+                self.__splay(current_node)
                 raise ValueError("Element already exists")
-            elif key < node.key:
-                node = node.left
+            elif key < current_node.key:
+                current_node = current_node.left
             else:
-                node = node.right
+                current_node = current_node.right
 
         new_node = Node(key, value, parent)
         if parent is None:
@@ -77,129 +82,126 @@ class SplayTree:
 
         self.__splay(new_node)
 
-    def delete(self, key):
-        node_to_delete = self.search(key)
-        if not node_to_delete:
-            raise KeyError("Element was not found")
-
-        if node_to_delete.left:
-            left_subtree = node_to_delete.left
-            left_subtree.parent = None
-
-            if node_to_delete.right:
-                right_subtree = node_to_delete.right
-
-                max_node = left_subtree
-                while max_node.right is not None:
-                    max_node = max_node.right
-                self.__splay(max_node)
-
-                max_node.right = right_subtree
-                right_subtree.parent = max_node
-
-                self.__root = max_node
+    def search(self, key):
+        current_node = self.__root
+        while current_node:
+            if key > current_node.key:
+                if not current_node.right:
+                    self.__splay(current_node)
+                    break
+                current_node = current_node.right
+            elif key < current_node.key:
+                if not current_node.left:
+                    self.__splay(current_node)
+                    break
+                current_node = current_node.left
             else:
-                self.__root = left_subtree
+                self.__splay(current_node)
+                return current_node
+        return None
+
+    def delete(self, key):
+        deletion_node = self.search(key)
+        if deletion_node is None:
+            raise KeyError("No such element")
+
+        if deletion_node.left:
+            left_tree = deletion_node.left
+            left_tree.parent = None
+
+            if deletion_node.right:
+                right_tree = deletion_node.right
+
+                max_node_left = left_tree
+                while max_node_left.right:
+                    max_node_left = max_node_left.right
+                self.__splay(max_node_left)
+
+                max_node_left.right = right_tree
+                right_tree.parent = max_node_left
+
+                self.__root = max_node_left
+            else:
+                self.__root = left_tree
         else:
-            self.__root = node_to_delete.right
+            self.__root = deletion_node.right
             if self.__root:
                 self.__root.parent = None
 
-    def search(self, key):
-        node = self.__root
-        while node:
-            if key < node.key:
-                if node.left is None:
-                    self.__splay(node)
-                    break
-                node = node.left
-            elif key > node.key:
-                if node.right is None:
-                    self.__splay(node)
-                    break
-                node = node.right
-            else:
-                self.__splay(node)
-                return node
-        return None
-
     def set(self, key, value):
-        node = self.search(key)
-        if node:
-            self.__root.value = value
+        found_node = self.search(key)
+        if found_node:
+            found_node.value = value
         else:
-            raise KeyError("Element was not found")
-
-    def min(self):
-        if self.__root:
-            node = self.__root
-        else:
-            raise ValueError("Tree is empty")
-
-        while node.left is not None:
-            node = node.left
-        self.__splay(node)
-        return node
+            raise KeyError("No such element")
 
     def max(self):
-        if self.__root:
-            node = self.__root
-        else:
+        if not self.__root:
             raise ValueError("Tree is empty")
 
-        while node.right is not None:
-            node = node.right
-        self.__splay(node)
-        return node
+        current_node = self.__root
+        while current_node.right is not None:
+            current_node = current_node.right
+        self.__splay(current_node)
+        return current_node
 
-    def print_tree(self, output_stream=sys.stdout):
+    def min(self):
         if not self.__root:
-            print("_", file=output_stream)
+            raise ValueError("Tree is empty")
+
+        current_node = self.__root
+        while current_node.left is not None:
+            current_node = current_node.left
+        self.__splay(current_node)
+        return current_node
+
+    def print_tree(self, stream=sys.stdout):
+        if not self.__root:
+            print("_", file=stream)
             return
 
-        print(f"[{self.__root.key} {self.__root.value}]", file=output_stream)
+        nodes_queue = deque([self.__root])
+        next_level = deque()
+        levels = []
 
-        level_length = 2
-        count = 0
-        queue = deque()
-        queue.appendleft(self.__root.left)
-        queue.appendleft(self.__root.right)
-        line = []
+        while nodes_queue:
+            level_nodes = []
+            while nodes_queue:
+                node = nodes_queue.popleft()
+                if node:
+                    node_repr = f"[{node.key} {node.value}"
+                    node_repr += f" {node.parent.key}]" if node.parent else "]"
+                    level_nodes.append(node_repr)
+                    next_level.append(node.left)
+                    next_level.append(node.right)
+                else:
+                    level_nodes.append("_")
+                    next_level.append(None)
+                    next_level.append(None)
 
-        while True:
-            node = queue.pop()
-            count += 1
-            if node:
-                line.append(f"[{node.key} {node.value} {node.parent.key}]")
-                queue.appendleft(node.left)
-                queue.appendleft(node.right)
-            else:
-                line.append("_")
-                queue.appendleft(None)
-                queue.appendleft(None)
+            levels.append(level_nodes)
+            nodes_queue, next_level = next_level, deque()
 
-            if count == level_length:
-                print(" ".join(line), file=output_stream)
-                line = []
-                level_length *= 2
-                count = 0
-                if not any(queue):
-                    break
+            if all(node is None for node in nodes_queue):
+                break
+
+        for level in levels:
+            print(" ".join(level), file=stream)
 
 
 def main():
     splay_tree = SplayTree()
 
     for line in sys.stdin:
-        line = line.strip()
+        line = line.rstrip("\n")
         if line:
             try:
-                if re.match(r'^add (-?\d+) (\S+)$', line):
-                    key, value = re.match(r'^add (-?\d+) (\S+)$', line).groups()
+                if re.match(r'^add (-?\d+) (\S*)$', line):
+                    key, value = re.match(r'^add (-?\d+) (\S*)$', line).groups()
                     splay_tree.add(int(key), value)
 
-                elif re.match(r'^set (-?\d+) (\S+)$', line):
-                    key, value = re.match(r'^set (-?\d+) (\S+)$', line).groups()
+                elif re.match(r'^set (-?\d+) (\S*)$', line):
+                    key, value = re.match(r'^set (-?\d+) (\S*)$', line).groups()
                     splay_tree.set(int(key), value)
 
                 elif re.match(r'^delete (-?\d+)$', line):
