@@ -157,44 +157,44 @@ class SplayTree:
 
     def print_tree(self):
         current_node = self.__root
-        if current_node:
-            print(f'[{current_node.key} {current_node.value}]')
-        else:
+        if not current_node:
             print('_')
             return
+        print(f'[{current_node.key} {current_node.value}]')
 
-        current_level = {}
-        next_level = {}
-
+        current_level_nodes = {}
         if current_node.left:
-            current_level[0] = current_node.left
+            current_level_nodes[0] = current_node.left
         if current_node.right:
-            current_level[1] = current_node.right
+            current_level_nodes[1] = current_node.right
 
-        size = 2
-        while current_level:
-            prev_index = -1
-            for index in current_level:
-                current_node = current_level[index]
-                if index == 0:
+        next_level_nodes = {}
+        level_width = 2
+
+        while current_level_nodes:
+            previous_index = -1
+            for current_index, current_node in current_level_nodes.items():
+                if current_index == 0:
                     print(f'[{current_node.key} {current_node.value} {current_node.parent.key}]', end='')
                 else:
-                    if prev_index == -1:
-                        print((index - 1) * '_ ', end='_')
+                    if previous_index == -1:
+                        print((current_index - 1) * '_ ', end='_')
                     else:
-                        print((index - prev_index - 1) * ' _', end='')
+                        print((current_index - previous_index - 1) * ' _', end='')
                     print(f' [{current_node.key} {current_node.value} {current_node.parent.key}]', end='')
                 if current_node.left:
-                    next_level[2 * index] = current_node.left
+                    next_level_nodes[2 * current_index] = current_node.left
                 if current_node.right:
-                    next_level[2 * index + 1] = current_node.right
-                prev_index = index
-            if prev_index < size - 1:
-                print((size - prev_index - 1) * ' _', end='')
-            current_level = next_level
-            next_level = {}
-            size *= 2
+                    next_level_nodes[2 * current_index + 1] = current_node.right
+                previous_index = current_index
+
+            if previous_index < level_width - 1:
+                print((level_width - previous_index - 1) * ' _', end='')
             print()
+
+            current_level_nodes = next_level_nodes
+            next_level_nodes = {}
+            level_width *= 2
 
 
 def main():
