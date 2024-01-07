@@ -155,12 +155,12 @@ class SplayTree:
         self.__splay(current_node)
         return current_node
 
-    def print_tree(self):
+    def print_tree(self, stream=sys.stdout):
         current_node = self.__root
         if not current_node:
-            print('_')
+            print('_', file=stream)
             return
-        print(f'[{current_node.key} {current_node.value}]')
+        print(f'[{current_node.key} {current_node.value}]', file=stream)
 
         current_level_nodes = {}
         if current_node.left:
@@ -175,13 +175,13 @@ class SplayTree:
             previous_index = -1
             for current_index, current_node in current_level_nodes.items():
                 if current_index == 0:
-                    print(f'[{current_node.key} {current_node.value} {current_node.parent.key}]', end='')
+                    print(f'[{current_node.key} {current_node.value} {current_node.parent.key}]', end='', file=stream)
                 else:
                     if previous_index == -1:
-                        print((current_index - 1) * '_ ', end='_')
+                        print((current_index - 1) * '_ ', end='_', file=stream)
                     else:
-                        print((current_index - previous_index - 1) * ' _', end='')
-                    print(f' [{current_node.key} {current_node.value} {current_node.parent.key}]', end='')
+                        print((current_index - previous_index - 1) * ' _', end='', file=stream)
+                    print(f' [{current_node.key} {current_node.value} {current_node.parent.key}]', end='', file=stream)
                 if current_node.left:
                     next_level_nodes[2 * current_index] = current_node.left
                 if current_node.right:
@@ -189,8 +189,8 @@ class SplayTree:
                 previous_index = current_index
 
             if previous_index < level_width - 1:
-                print((level_width - previous_index - 1) * ' _', end='')
-            print()
+                print((level_width - previous_index - 1) * ' _', end='', file=stream)
+            print(file=stream)
 
             current_level_nodes = next_level_nodes
             next_level_nodes = {}

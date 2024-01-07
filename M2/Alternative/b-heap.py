@@ -13,92 +13,91 @@ class MinHeap:
         self.__nodes_list = []
         self.__index_dict = {}
 
-    def __swap(self, i, j):
-        self.__index_dict[self.__nodes_list[i].key], self.__index_dict[self.__nodes_list[j].key] = j, i
-        self.__nodes_list[i], self.__nodes_list[j] = self.__nodes_list[j], self.__nodes_list[i]
-
-    def __sift_up(self, index):
-        parent = (index - 1) // 2
-        while index > 0 and self.__nodes_list[index].key < self.__nodes_list[parent].key:
-            self.__swap(index, parent)
-            index = parent
-            parent = (index - 1) // 2
-
-    def __sift_down(self, index):
-        n = len(self.__nodes_list)
+    def __sift_down(self, parent_index):
         while True:
-            left = 2 * index + 1
-            right = 2 * index + 2
-            smallest = index
+            left, right = (parent_index << 1) + 1, (parent_index << 1) + 2
+            smaller_child = parent_index
 
-            if left < n and self.__nodes_list[left].key < self.__nodes_list[smallest].key:
-                smallest = left
-            if right < n and self.__nodes_list[right].key < self.__nodes_list[smallest].key:
-                smallest = right
+            if left < len(self.__nodes_list) and self.__nodes_list[left].key < self.__nodes_list[smaller_child].key:
+                smaller_child = left
+            if right < len(self.__nodes_list) and self.__nodes_list[right].key < self.__nodes_list[smaller_child].key:
+                smaller_child = right
 
-            if smallest != index:
-                self.__swap(index, smallest)
-                index = smallest
-            else:
+            if smaller_child == parent_index:
                 break
 
-    def add(self, key, value):
-        if key in self.__index_dict:
-            raise ValueError("Element already exists")
-        node = Node(key, value)
-        self.__index_dict[key] = len(self.__nodes_list)
-        self.__nodes_list.append(node)
-        self.__sift_up(len(self.__nodes_list) - 1)
+            self.__swap_nodes(parent_index, smaller_child)
+            parent_index = smaller_child
 
-    def set(self, key, value):
+    def __sift_up(self, child_index):
+        while child_index > 0:
+            parent_index = (child_index - 1) >> 1
+            if self.__nodes_list[child_index].key >= self.__nodes_list[parent_index].key:
+                break
+            self.__swap_nodes(child_index, parent_index)
+            child_index = parent_index
+
+    def __swap_nodes(self, first_index, second_index):
+        first_node, second_node = self.__nodes_list[first_index], self.__nodes_list[second_index]
+        self.__nodes_list[first_index], self.__nodes_list[second_index] = second_node, first_node
+        self.__index_dict[first_node.key], self.__index_dict[second_node.key] = second_index, first_index
+
+    def add(self, key, value):
         if key not in self.__index_dict:
-            raise KeyError("No such element")
-        index = self.__index_dict[key]
-        self.__nodes_list[index].value = value
-        self.__sift_up(index)
-        self.__sift_down(index)
+            self.__nodes_list.append(Node(key, value))
+            self.__index_dict[key] = len(self.__nodes_list) - 1
+            self.__sift_up(self.__index_dict[key])
+        else:
+            raise ValueError("Element already exists")
 
     def delete(self, key):
-        if key not in self.__index_dict:
+        if key in self.__index_dict:
+            index = self.__index_dict.pop(key)
+            last_index = len(self.__nodes_list) - 1
+            if index != last_index:
+                self.__nodes_list[index] = self.__nodes_list.pop()
+                self.__index_dict[self.__nodes_list[index].key] = index
+                if index > 0 and self.__nodes_list[index].key < self.__nodes_list[(index - 1) // 2].key:
+                    self.__sift_up(index)
+                else:
+                    self.__sift_down(index)
+            else:
+                self.__nodes_list.pop()
+        else:
             raise KeyError("No such element")
-        index = self.__index_dict[key]
-        last_node = self.__nodes_list.pop()
-        if index < len(self.__nodes_list):
-            self.__nodes_list[index] = last_node
-            self.__index_dict[last_node.key] = index
-            self.__sift_up(index)
-            self.__sift_down(index)
-        del self.__index_dict[key]
 
-    def get_index(self, key):
-        if key in self.__index_dict:
-            return self.__index_dict[key]
-        return None
-
-    def search(self, key):
-        if key in self.__index_dict:
-            index = self.__index_dict[key]
-            node = self.__nodes_list[index]
-            return node
-        return None
-
-    def min(self):
-        if not self.__nodes_list:
-            raise ValueError("Heap is empty")
-        return self.__nodes_list[0]
+    def set(self, key, new_value):
+        node_index = self.__index_dict.get(key)
+        if node_index:
+            self.__sift_up(node_index)
+            self.__sift_down(node_index)
+            self.__nodes_list[node_index].value = new_value
+        else:
+            raise KeyError("No such element")
 
     def max(self):
-        if not self.__nodes_list:
-            raise ValueError("Heap is empty")
-        first_leaf = len(self.__nodes_list) // 2
-        return max(self.__nodes_list[first_leaf:], key=lambda x: x.key)
+        if self.__nodes_list:
+            return max(self.__nodes_list[len(self.__nodes_list) // 2:], key=lambda x: x.key)
+        raise ValueError("Heap is empty")
+
+    def min(self):
+        if self.__nodes_list:
+            return self.__nodes_list[0]
+        raise ValueError("Heap is empty")
 
     def extract(self):
-        if not self.__nodes_list:
-            raise ValueError("Heap is empty")
-        root = self.__nodes_list[0]
-        self.delete(root.key)
-        return root
+        if self.__nodes_list:
+            min_node = self.__nodes_list[0]
+            self.delete(min_node.key)
+            return min_node
+        raise ValueError("Heap is empty")
+
+    def get_index(self, key):
+        return self.__index_dict[key] if key in self.__index_dict else None
+
+    def search(self, key):
+        index = self.get_index(key)
+        return None if index is None else self.__nodes_list[index]
 
     def print_heap(self, output_stream=sys.stdout):
         if not self.__nodes_list:
