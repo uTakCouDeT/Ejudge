@@ -155,38 +155,46 @@ class SplayTree:
         self.__splay(current_node)
         return current_node
 
-    def print_tree(self, stream=sys.stdout):
-        if not self.__root:
-            print("_", file=stream)
+    def print_tree(self):
+        current_node = self.__root
+        if current_node:
+            print(f'[{current_node.key} {current_node.value}]')
+        else:
+            print('_')
             return
 
-        nodes_queue = deque([self.__root])
-        next_level = deque()
-        levels = []
+        current_level = {}
+        next_level = {}
 
-        while nodes_queue:
-            level_nodes = []
-            while nodes_queue:
-                node = nodes_queue.popleft()
-                if node:
-                    node_repr = f"[{node.key} {node.value}"
-                    node_repr += f" {node.parent.key}]" if node.parent else "]"
-                    level_nodes.append(node_repr)
-                    next_level.append(node.left)
-                    next_level.append(node.right)
+        if current_node.left:
+            current_level[0] = current_node.left
+        if current_node.right:
+            current_level[1] = current_node.right
+
+        size = 2
+        while current_level:
+            prev_index = -1
+            for index in current_level:
+                current_node = current_level[index]
+                if index == 0:
+                    print(f'[{current_node.key} {current_node.value} {current_node.parent.key}]', end='')
                 else:
-                    level_nodes.append("_")
-                    next_level.append(None)
-                    next_level.append(None)
-
-            levels.append(level_nodes)
-            nodes_queue, next_level = next_level, deque()
-
-            if all(node is None for node in nodes_queue):
-                break
-
-        for level in levels:
-            print(" ".join(level), file=stream)
+                    if prev_index == -1:
+                        print((index - 1) * '_ ', end='_')
+                    else:
+                        print((index - prev_index - 1) * ' _', end='')
+                    print(f' [{current_node.key} {current_node.value} {current_node.parent.key}]', end='')
+                if current_node.left:
+                    next_level[2 * index] = current_node.left
+                if current_node.right:
+                    next_level[2 * index + 1] = current_node.right
+                prev_index = index
+            if prev_index < size - 1:
+                print((size - prev_index - 1) * ' _', end='')
+            current_level = next_level
+            next_level = {}
+            size *= 2
+            print()
 
 
 def main():
