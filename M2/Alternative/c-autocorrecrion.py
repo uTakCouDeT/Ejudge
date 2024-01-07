@@ -12,66 +12,94 @@ class Trie:
         self.__root = Node()
 
     def add(self, word):
+        """
+            Сложность: O(n), где n - длина слова, добавляемого в дерево.
+            Это связано с тем, что основная операция в методе — это последовательное прохождение по каждому
+            символу слова для его вставки в дерево. На каждом шаге алгоритма проверяется наличие соответствующего
+            префикса среди дочерних узлов текущего узла. Если необходимо, выполняется разделение или добавление узлов.
+            Эти операции зависят только от количества символов в слове, а не от общего количества слов
+            или узлов в дереве. Следовательно, общее время выполнения метода прямо пропорционально длине
+            добавляемого слова, что и определяет линейную сложность O(n).
+        """
         word = word.lower()
-        node = self.__root
-        i = 0
-        while i < len(word):
-            match = False
-            for child in node.children.keys():
-                common_prefix_length = self.__common_prefix_length(word[i:], child)
+        current = self.__root
 
-                if common_prefix_length > 0:
-                    match = True
+        index = 0
+        while index < len(word):
+            found = False
+            # Итерация по существующим дочерним узлам
+            for child_key in list(current.children):
 
-                    if common_prefix_length == len(child):
-                        node = node.children[child]
+                # Нахождение общего префикса
+                left_word = word[index:]
+                right_word = child_key
+                prefix_len = min(len(left_word), len(right_word))
+                for current_len in range(prefix_len):
+                    if left_word[current_len] != right_word[current_len]:
+                        prefix_len = current_len
+                        break
+
+                if prefix_len > 0:
+                    found = True
+                    if prefix_len < len(child_key):
+                        # Разделение существующего узла
+                        existing_child = current.children.pop(child_key)
+                        split_node = Node()
+                        current.children[word[index:index + prefix_len]] = split_node
+                        split_node.children[child_key[prefix_len:]] = existing_child
+                        current = split_node
                     else:
-                        existing_node = node.children[child]
-                        new_child = child[:common_prefix_length]
-                        new_node = Node()
-
-                        node.children[new_child] = new_node
-                        new_node.children[child[common_prefix_length:]] = existing_node
-                        del node.children[child]
-
-                        node = new_node
-
-                    i += common_prefix_length
+                        current = current.children[child_key]
+                    index += prefix_len
                     break
 
-            if not match:
+            if not found:
+                # Создание нового узла
                 new_node = Node()
-                new_node.end_of_word = True
-                node.children[word[i:]] = new_node
-                break
-            elif i == len(word):
-                node.end_of_word = True
+                new_node.end_of_word = index == len(word) - 1
+                current.children[word[index:]] = new_node
+                current = new_node
+                index += len(word) - index
 
-    @staticmethod
-    def __common_prefix_length(s1, s2):
-        min_length = min(len(s1), len(s2))
-        for i in range(min_length):
-            if s1[i] != s2[i]:
-                return i
-        return min_length
+        current.end_of_word = True
 
     def search(self, word):
+        """
+            Сложность: O(n), где где n - длина искомого слова.
+            Это связано с тем, что алгоритм проходит через каждый символ слова ровно один раз.
+            В процессе поиска, метод последовательно проверяет совпадение сегментов слова с ключами дочерних
+            узлов в дереве, причём каждый символ слова рассматривается только один раз. Таким образом,
+            общее время выполнения метода тоже прямо линейно зависит от количества символов в слове.
+
+        """
         word = word.lower()
-        node = self.__root
-        i = 0
-        while i < len(word):
-            found = False
-            for child in node.children.keys():
-                if word[i:].startswith(child):
-                    found = True
-                    node = node.children[child]
-                    i += len(child)
+        current_node = self.__root
+        word_index = 0
+
+        while word_index < len(word):
+            matched = False
+            # Перебор дочерних узлов текущего узла
+            for child_key, child_node in current_node.children.items():
+                if word.startswith(child_key, word_index):
+                    # Смещение индекса на длину совпавшего префикса
+                    word_index += len(child_key)
+                    current_node = child_node
+                    matched = True
                     break
-            if not found:
+
+            if not matched:
                 return False
-        return node.end_of_word
+
+            if word_index == len(word):
+                return current_node.end_of_word
+
+        return False
 
     def get_corrections(self, word):
+        """
+            Сложность: O(k * n^2), где k - количество слов в словаре, длина которых по модулю отличается
+            от длины проверяемого слова на 1, n - длина проверяемого слова (в худшем случае)
+        """
         word = word.lower()
         stack = [(self.__root, "")]
         corrections = []
@@ -94,7 +122,11 @@ class Trie:
 
     @staticmethod
     def __is_dam_lev_distance_one(s1, s2):
-
+        """
+            Сложность: O(m * n), где m и n - длины сравниваемых слов (в худшем случае)
+            Пояснение: Алгоритм использует два вложенных цикла, каждый из которых проходит по длине одной из строк.
+            В худшем случае это дает сложность O(n * m), где n и m - длины сравниваемых строк.
+        """
         len_s1, len_s2 = len(s1), len(s2)
 
         prev_prev_row = None
